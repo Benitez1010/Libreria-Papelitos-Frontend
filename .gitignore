@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Node / React
+node_modules/
+dist/
+.eslintcache
+
+# Entorno local / Editores
+.env
+.vscode/
+.idea/
+*.log
