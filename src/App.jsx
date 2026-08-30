@@ -14,6 +14,7 @@ import RegistrarMovimiento from './pages/Productos/RegistrarMovimiento';
 import ListaProductos from './pages/Productos/ListaProductos';
 import EditarProducto from './pages/Productos/EditarProducto';
 import Destinatarios from './pages/Configuracion/Destinatarios'; // Importa el componente Destinatarios
+import HistorialAlertas from './pages/Configuracion/HistorialAlertas'; // Importa el componente HistorialAlertas
 
 function App() {
   return (
@@ -64,6 +65,13 @@ function App() {
           <Route path="destinatarios" element={
             <ProtectorRuta modulo="destinatarios">
               <Destinatarios />
+            </ProtectorRuta>
+          } />
+
+          {/*Vista del Historial de Alertas*/}
+          <Route path="historial-alertas" element={
+            <ProtectorRuta modulo="historial_alertas">
+              <HistorialAlertas />
             </ProtectorRuta>
           } />
 

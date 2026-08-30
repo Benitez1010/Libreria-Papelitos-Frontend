@@ -18,5 +18,6 @@ export const ENDPOINTS = {
   // Módulo de Alertas
   ALERTAS: {
     DESTINATARIOS: 'http://localhost:8000/api/destinatarios/',
+    HISTORIAL: 'http://localhost:8000/api/historial-alertas/',
   }
 }
