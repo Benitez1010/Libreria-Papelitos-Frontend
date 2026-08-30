@@ -14,4 +14,9 @@ export const ENDPOINTS = {
   },
   // Módulo de Usuarios
   USUARIOS: `${BASE_URL}usuarios/`,
+
+  // Módulo de Alertas
+  ALERTAS: {
+    DESTINATARIOS: 'http://localhost:8000/api/destinatarios/',
+  }
 }

@@ -13,6 +13,7 @@ import ControlInactividad from './components/ControlInactividad';
 import RegistrarMovimiento from './pages/Productos/RegistrarMovimiento';
 import ListaProductos from './pages/Productos/ListaProductos';
 import EditarProducto from './pages/Productos/EditarProducto';
+import Destinatarios from './pages/Configuracion/Destinatarios'; // Importa el componente Destinatarios
 
 function App() {
   return (
@@ -59,7 +60,12 @@ function App() {
             </ProtectorRuta>
           } />
 
-          
+          {/*Vista de Destinatarios de alertas*/}
+          <Route path="destinatarios" element={
+            <ProtectorRuta modulo="destinatarios">
+              <Destinatarios />
+            </ProtectorRuta>
+          } />
 
           {/* Rutas para productos y movimientos */}
           <Route path="inventario/movimiento" element={<
