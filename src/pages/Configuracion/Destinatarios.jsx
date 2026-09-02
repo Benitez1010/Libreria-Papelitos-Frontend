@@ -5,12 +5,15 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EmailIcon from '@mui/icons-material/Email';
+import HistoryIcon from '@mui/icons-material/History';
+import { useNavigate } from 'react-router-dom';
 import { ENDPOINTS } from '../../services/api';
 
 const Destinatarios = () => {
   const [destinatarios, setDestinatarios] = useState([]);
   const [nuevoCorreo, setNuevoCorreo] = useState('');
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+  const navigate = useNavigate();
 
   const obtenerDestinatarios = async () => {
     try {
@@ -75,9 +78,30 @@ const Destinatarios = () => {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" fontWeight="bold" color="#1E5631" mb={3}>
-        Destinatarios de Alertas
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mb: 3 }}>
+        <Typography variant="h4" fontWeight="bold" color="#1E5631">
+          Destinatarios de Alertas
+        </Typography>
+        <Button 
+          variant="contained" 
+          startIcon={<HistoryIcon />}
+          onClick={() => navigate('/historial-alertas')}
+          sx={{ 
+            backgroundColor: '#ffffff', 
+            color: '#1E5631',
+            border: '2px solid #1E5631',
+            fontWeight: 'bold',
+            boxShadow: 'none',
+            marginLeft: 'auto', // Fuerza el empuje a la derecha
+            '&:hover': { 
+              backgroundColor: '#f4f7f5',
+              boxShadow: 'none',
+            }
+          }}
+        >
+          Ver Historial
+        </Button>
+      </Box>
 
       {mensaje.texto && (
         <Alert severity={mensaje.tipo} sx={{ mb: 3 }}>{mensaje.texto}</Alert>
@@ -94,7 +118,7 @@ const Destinatarios = () => {
             fullWidth
             size="small"
           />
-          <Button variant="contained" type="submit" sx={{ backgroundColor: '#1E5631' }}>
+          <Button variant="contained" type="submit" sx={{ backgroundColor: '#1E5631', minWidth: '160px' }}>
             Añadir y Probar
           </Button>
         </form>

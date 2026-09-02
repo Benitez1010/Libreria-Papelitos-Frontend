@@ -58,10 +58,10 @@ const EditarProducto = () => {
     e.preventDefault();
     setAlerta({ tipo: '', mensaje: '' });
 
-    // Validación del lado del cliente (Criterio de Aceptación ALT-03)
-    const stockMinimoNumerico = parseInt(formData.stock_minimo, 10);
-    if (isNaN(stockMinimoNumerico) || stockMinimoNumerico <= 0) {
-      setAlerta({ tipo: 'error', mensaje: 'El Stock Mínimo debe ser un número entero mayor a cero.' });
+    // Validación del lado del cliente para stock_minimo
+    const stockMinimoNumerico = Number(formData.stock_minimo);
+    if (!Number.isInteger(stockMinimoNumerico) || stockMinimoNumerico <= 0) {
+      setAlerta({ tipo: 'error', mensaje: 'Ingrese una cantidad numérica válida mayor a cero' });
       return;
     }
 
@@ -85,7 +85,9 @@ const EditarProducto = () => {
         setTimeout(() => navigate('/productos'), 2000); // Redirige a la lista después de 2 segundos
       } else {
         const errorData = await response.json();
-        setAlerta({ tipo: 'error', mensaje: errorData.message || 'Error al guardar los cambios.' });
+        // Atrapamos el error específico del backend si falla la validación
+        const mensajeBackend = errorData.stock_minimo ? errorData.stock_minimo[0] : (errorData.message || 'Error al guardar los cambios.');
+        setAlerta({ tipo: 'error', mensaje: mensajeBackend });
       }
     } catch (error) {
       setAlerta({ tipo: 'error', mensaje: 'Error de conexión al intentar actualizar.' });
@@ -151,7 +153,7 @@ const EditarProducto = () => {
               />
             </Grid>
 
-            {/* Configuración de Parámetro de Alerta (ALT-03) */}
+            {/* Configuración de Parámetro de Alerta (ALT-03 / ALT-06) */}
             <Grid item xs={12}>
               <Box sx={{ p: 3, backgroundColor: 'rgba(211, 47, 47, 0.05)', borderRadius: '8px', borderLeft: '4px solid #d32f2f' }}>
                 <Typography variant="h6" sx={{ color: '#d32f2f', fontWeight: 'bold', mb: 3, display: 'block' }}>
@@ -165,7 +167,13 @@ const EditarProducto = () => {
                   value={formData.stock_minimo}
                   onChange={handleChange}
                   required
-                  inputProps={{ min: 1 }} // Validación HTML base
+                  inputProps={{ min: "1", step: "1" }} // Validación HTML base para enteros positivos
+                  onKeyDown={(e) => {
+                    // Bloqueo estricto de teclado
+                    if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                   helperText="Define en qué cantidad el sistema debe considerar el producto en nivel crítico y disparar la alerta."
                 />
               </Box>

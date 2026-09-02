@@ -10,15 +10,14 @@ import {
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { ENDPOINTS } from '../services/api';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
 const SidebarContent = ({ openAdmin, setOpenAdmin, openConfig, setOpenConfig, onLogout, usuarioInfo, desktopOpen, setDesktopOpen }) => {
   
   const esAdmin = usuarioInfo?.rol === 'Administrador' || usuarioInfo?.rol === 'ADMIN';
   
-
   const mostrarCategoriaAdmin = true;
   
-
   const mostrarCategoriaConfig = esAdmin;
 
   const handleMenuClick = (setter, currentState) => {
@@ -30,7 +29,6 @@ const SidebarContent = ({ openAdmin, setOpenAdmin, openConfig, setOpenConfig, on
     }
   };
 
-  
   const NavItem = ({ to, icon, text, isSubmenu = false }) => {
     const styledIcon = React.cloneElement(icon, {
       sx: { 
@@ -165,6 +163,7 @@ const SidebarContent = ({ openAdmin, setOpenAdmin, openConfig, setOpenConfig, on
                 <List component="div" disablePadding>
                   <NavItem to="/usuarios" icon={<Group sx={{ color: 'white' }} />} text="Usuarios" isSubmenu />
                   <NavItem to="/acceso-rol" icon={<Security sx={{ color: 'white' }} />} text="Acceso por Rol" isSubmenu />
+                  <NavItem to="/destinatarios" icon={<NotificationsActiveIcon sx={{ color: 'white' }} />} text="Configurar Alertas" isSubmenu />
                 </List>
               </Collapse>
             </>

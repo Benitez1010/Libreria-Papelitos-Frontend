@@ -294,7 +294,13 @@ const RegistrarMovimiento = () => {
                         size="small"
                         value={linea.cantidad}
                         onChange={(e) => handleCambioFila(index, 'cantidad', e.target.value === '' ? '' : (parseInt(e.target.value, 10) || 0))}
-                        slotProps={{ htmlInput: { min: 1 } }}
+                        slotProps={{ htmlInput: { min: "1", step: "1" } }} // Configurado para HTML base
+                        onKeyDown={(e) => {
+                          // Bloqueo estricto para evitar ingreso de signos y decimales
+                          if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
                         required
                         fullWidth
                       />

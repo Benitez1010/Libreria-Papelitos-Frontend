@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableHead, TableRow, Chip } from '@mui/material';
+import { Box, Typography, Paper, Table, TableBody, TableCell, TableHead, TableRow, Chip, Button } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useNavigate } from 'react-router-dom';
 import { ENDPOINTS } from '../../services/api';
 
 const HistorialAlertas = () => {
   const [historial, setHistorial] = useState([]);
+  const navigate = useNavigate(); // Inicializamos el hook
 
   useEffect(() => {
     const cargarHistorial = async () => {
@@ -22,9 +25,28 @@ const HistorialAlertas = () => {
 
   return (
     <Box sx={{ p: 4 }}>
-      <Typography variant="h4" fontWeight="bold" color="#1E5631" mb={3}>
-        Bitácora de Alertas de Stock
-      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', mb: 3 }}>
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate(-1)}
+          sx={{
+            color: '#1E5631',
+            borderColor: '#1E5631',
+            fontWeight: 'bold',
+            mb: 2,
+            '&:hover': { 
+              backgroundColor: '#f4f7f5', 
+              borderColor: '#1E5631' 
+            }
+          }}
+        >
+          Volver
+        </Button>
+        <Typography variant="h4" fontWeight="bold" color="#1E5631" sx={{ m: 0 }}>
+          Bitácora de Alertas de Stock
+        </Typography>
+      </Box>
 
       <Paper>
         <Table>
