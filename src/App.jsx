@@ -4,6 +4,8 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import Usuarios from './pages/Usuarios/Usuarios';
 import RutaPrivada from './components/RutaPrivada';
 import Login from './pages/Login/Login';
+import RecuperarPassword from './pages/Login/RecuperarPassword';
+import RestablecerPassword from './pages/Login/RestablecerPassword';
 import EditarCategoria from './pages/Categorias/EditarCategoria'; 
 import Categorias from './pages/Categorias/Categorias';
 import UsuarioAcceso from './pages/Configuracion/UsuarioAcceso';
@@ -21,6 +23,12 @@ function App() {
     <Routes>
       {/* Ruta pública: Login no requiere autenticación y no tiene Sidebar */}
       <Route path="/login" element={<Login />} />
+
+      {/* Ruta pública: solicitud de recuperación de contraseña */}
+      <Route path="/recuperar-password" element={<RecuperarPassword />} />
+
+      {/* Ruta pública: formulario de nueva contraseña desde el enlace del correo */}
+      <Route path="/restablecer/:uid/:token" element={<RestablecerPassword />} />
 
       {/* Rutas protegidas: requieren iniciar sesión */}
       <Route element={<RutaPrivada />}>

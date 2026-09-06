@@ -11,6 +11,8 @@ export const ENDPOINTS = {
   // Módulo de Seguridad
   SEGURIDAD: {
     LOGIN: `${BASE_URL}login/`,
+    RECUPERAR_PASSWORD: `${BASE_URL}recuperar-password/`,
+    RESTABLECER_PASSWORD: `${BASE_URL}restablecer-password/`,
   },
   // Módulo de Usuarios
   USUARIOS: `${BASE_URL}usuarios/`,

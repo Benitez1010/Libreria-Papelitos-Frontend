@@ -257,6 +257,25 @@ const Login = () => {
                   {cargando ? <CircularProgress size={24} color="inherit" /> : 'Acceder al Sistema'}
                 </Button>
               </Zoom>
+
+              {/* enlace hacia la recuperación de contraseña */}
+              <Zoom in={true} style={{ transitionDelay: '1100ms' }}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography
+                    variant="body2"
+                    onClick={() => navigate('/recuperar-password')}
+                    sx={{
+                      color: '#1E5631',
+                      fontWeight: 'bold',
+                      display: 'inline-flex',
+                      cursor: 'pointer',
+                      '&:hover': { textDecoration: 'underline' }
+                    }}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Typography>
+                </Box>
+              </Zoom>
             </Box>
           </Box>
         </Paper>
