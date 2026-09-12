@@ -46,7 +46,7 @@ const ProtectorRuta = ({ children, modulo, accion = 'master' }) => {
           // REGLA 2: BLOQUEO ESTRICTO DE RUTAS DE USUARIOS
    
           // Bloquea localhost:5173/usuarios y localhost:5173/Listadousuarios
-          if (pathActual.includes('usuario') || pathActual.includes('rol') || pathActual.includes('acceso')) {
+          if (pathActual.includes('usuario') || pathActual.includes('rol') || pathActual.includes('acceso')|| pathActual.includes('bitacora')) {
             setAutorizado(false); 
             return;
           }
