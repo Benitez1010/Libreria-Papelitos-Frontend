@@ -1,6 +1,9 @@
-// 1. Obtenemos la URL y eliminamos la barra final si existe para evitar duplicados (//)
+// 1. Limpiamos la URL que viene de Vercel (quitamos la barra final si existe)
 const RAW_URL = import.meta.env.VITE_API_URL || "";
-const BASE_URL = RAW_URL.endsWith("/") ? RAW_URL.slice(0, -1) : RAW_URL;
+const DOMAIN_URL = RAW_URL.endsWith("/") ? RAW_URL.slice(0, -1) : RAW_URL;
+
+// 2. Le agregamos el prefijo '/api' que configuraste en el urls.py de tu backend
+const BASE_URL = `${DOMAIN_URL}/api`;
 
 export const ENDPOINTS = {
   // Módulo de Inventario
