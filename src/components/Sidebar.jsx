@@ -133,7 +133,7 @@ const SidebarContent = ({ openAdmin, setOpenAdmin, openConfig, setOpenConfig, on
                   <NavItem to="/productos" icon={<Inventory sx={{ color: 'white' }} />} text="Listado de Productos" isSubmenu />
                   <NavItem to="/categorias" icon={<Category sx={{ color: 'white' }} />} text="Categorías" isSubmenu />
                   <NavItem to="" icon={<Storefront sx={{ color: 'white' }} />} text="Área de almacenaje" isSubmenu />
-                  <NavItem to="" icon={<SyncAlt sx={{ color: 'white' }} />} text="Movimientos" isSubmenu />
+                  <NavItem to="/movimientos" icon={<SyncAlt sx={{ color: 'white' }} />} text="Movimientos" isSubmenu />
                   <NavItem to="" icon={<Assessment sx={{ color: 'white' }} />} text="Control de Inventario" isSubmenu />
                 </List>
               </Collapse>

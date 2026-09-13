@@ -5,6 +5,7 @@ export const ENDPOINTS = {
   INVENTARIO: {
     CATEGORIAS: `${BASE_URL}categorias/`,
     PRODUCTOS: `${BASE_URL}productos/`,
+    MOVIMIENTOS: `${BASE_URL}movimientos/`,
     PROCESAR_MOVIMIENTO: `${BASE_URL}movimientos/procesar/`,
   },
 
@@ -14,6 +15,7 @@ export const ENDPOINTS = {
     RECUPERAR_PASSWORD: `${BASE_URL}recuperar-password/`,
     RESTABLECER_PASSWORD: `${BASE_URL}restablecer-password/`,
   },
+
   // Módulo de Usuarios
   USUARIOS: `${BASE_URL}usuarios/`,
 
@@ -21,5 +23,5 @@ export const ENDPOINTS = {
   ALERTAS: {
     DESTINATARIOS: `${BASE_URL}destinatarios/`,
     HISTORIAL: `${BASE_URL}historial-alertas/`,
-  }
-}
+  },
+};
