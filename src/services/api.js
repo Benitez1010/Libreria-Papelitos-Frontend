@@ -10,7 +10,8 @@ export const ENDPOINTS = {
   INVENTARIO: {
     CATEGORIAS: `${BASE_URL}/categorias/`,
     PRODUCTOS: `${BASE_URL}/productos/`,
-    PROCESAR_MOVIMIENTO: `${BASE_URL}/movimientos/procesar/`,
+    MOVIMIENTOS: `${BASE_URL}/movimientos/`,
+    PROCESAR_MOVIMIENTO: `${BASE_URL}movimientos/procesar/`,
   },
 
   // Módulo de Seguridad
@@ -19,7 +20,6 @@ export const ENDPOINTS = {
     RECUPERAR_PASSWORD: `${BASE_URL}/recuperar-password/`,
     RESTABLECER_PASSWORD: `${BASE_URL}/restablecer-password/`,
   },
-  
   // Módulo de Usuarios
   USUARIOS: `${BASE_URL}/usuarios/`,
 

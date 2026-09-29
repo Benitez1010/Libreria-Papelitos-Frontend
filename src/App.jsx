@@ -17,6 +17,9 @@ import ListaProductos from './pages/Productos/ListaProductos';
 import EditarProducto from './pages/Productos/EditarProducto';
 import Destinatarios from './pages/Configuracion/Destinatarios'; // Importa el componente Destinatarios
 import HistorialAlertas from './pages/Configuracion/HistorialAlertas'; // Importa el componente HistorialAlertas
+import BitacoraBloqueo from './pages/Configuracion/BitacoraBloqueo'; // Importa el componente BitacoraBloqueo
+import Movimientos from './pages/Productos/Movimientos'; // Importa el componente Movimientos
+
 
 function App() {
   return (
@@ -101,6 +104,13 @@ function App() {
               <EditarProducto />
             </ProtectorRuta>
           } />
+
+          <Route path="bitacora-bloqueo" element={
+            <ProtectorRuta modulo="bitacora_bloqueo">
+              <BitacoraBloqueo />
+            </ProtectorRuta>
+          } />
+          <Route path="movimientos" element={<Movimientos />} />
           
         </Route>
       </Route>

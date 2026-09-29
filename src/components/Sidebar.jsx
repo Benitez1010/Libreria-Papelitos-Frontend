@@ -6,7 +6,7 @@ import {
 import { 
   Home, ExpandLess, ExpandMore, Inventory, Category, 
   Storefront, SyncAlt, Assessment, Settings, Group, 
-  ManageAccounts, Security, Logout 
+  ManageAccounts, Security, Logout, LockClock
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { ENDPOINTS } from '../services/api';
@@ -133,7 +133,7 @@ const SidebarContent = ({ openAdmin, setOpenAdmin, openConfig, setOpenConfig, on
                   <NavItem to="/productos" icon={<Inventory sx={{ color: 'white' }} />} text="Listado de Productos" isSubmenu />
                   <NavItem to="/categorias" icon={<Category sx={{ color: 'white' }} />} text="Categorías" isSubmenu />
                   <NavItem to="" icon={<Storefront sx={{ color: 'white' }} />} text="Área de almacenaje" isSubmenu />
-                  <NavItem to="" icon={<SyncAlt sx={{ color: 'white' }} />} text="Movimientos" isSubmenu />
+                  <NavItem to="/movimientos" icon={<SyncAlt sx={{ color: 'white' }} />} text="Movimientos" isSubmenu />
                   <NavItem to="" icon={<Assessment sx={{ color: 'white' }} />} text="Control de Inventario" isSubmenu />
                 </List>
               </Collapse>
@@ -164,6 +164,7 @@ const SidebarContent = ({ openAdmin, setOpenAdmin, openConfig, setOpenConfig, on
                   <NavItem to="/usuarios" icon={<Group sx={{ color: 'white' }} />} text="Usuarios" isSubmenu />
                   <NavItem to="/acceso-rol" icon={<Security sx={{ color: 'white' }} />} text="Acceso por Rol" isSubmenu />
                   <NavItem to="/destinatarios" icon={<NotificationsActiveIcon sx={{ color: 'white' }} />} text="Configurar Alertas" isSubmenu />
+                  <NavItem to="/bitacora-bloqueo" icon={<LockClock sx={{ color: 'white' }} />} text="Bitácora de Bloqueos" isSubmenu />
                 </List>
               </Collapse>
             </>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, Paper, TextField, Button, Table, TableBody, 
-  TableCell, TableHead, TableRow, Switch, IconButton, Alert 
+  TableCell, TableHead, TableRow, Switch, IconButton, Alert,
+  Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EmailIcon from '@mui/icons-material/Email';
@@ -13,6 +14,11 @@ const Destinatarios = () => {
   const [destinatarios, setDestinatarios] = useState([]);
   const [nuevoCorreo, setNuevoCorreo] = useState('');
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+  
+  // Estados para controlar el modal de confirmación
+  const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const [destinatarioAEliminar, setDestinatarioAEliminar] = useState(null);
+
   const navigate = useNavigate();
 
   const obtenerDestinatarios = async () => {
@@ -66,13 +72,36 @@ const Destinatarios = () => {
     }
   };
 
-  const handleEliminar = async (id) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este correo?")) return;
+  // 1. Prepara el modal con el ID seleccionado
+  const solicitarEliminacion = (id) => {
+    setDestinatarioAEliminar(id);
+    setDialogoAbierto(true);
+  };
+
+  // 2. Cierra el modal sin hacer nada
+  const cancelarEliminacion = () => {
+    setDialogoAbierto(false);
+    setDestinatarioAEliminar(null);
+  };
+
+  // 3. Ejecuta la eliminación si el usuario confirma
+  const confirmarEliminacion = async () => {
     try {
-      await fetch(`${ENDPOINTS.ALERTAS.DESTINATARIOS}${id}/`, { method: 'DELETE' });
-      obtenerDestinatarios();
+      const response = await fetch(`${ENDPOINTS.ALERTAS.DESTINATARIOS}${destinatarioAEliminar}/`, { method: 'DELETE' });
+      const data = await response.json(); // Leemos el JSON que arreglamos en el backend
+      
+      if (response.ok) {
+        setMensaje({ tipo: 'success', texto: data.message });
+        obtenerDestinatarios();
+      } else {
+        setMensaje({ tipo: 'error', texto: data.message || 'Error al eliminar.' });
+      }
     } catch (error) {
-      setMensaje({ tipo: 'error', texto: 'Error al eliminar.' });
+      setMensaje({ tipo: 'error', texto: 'Error de red al intentar eliminar.' });
+    } finally {
+      // Independientemente del resultado, cerramos el modal
+      setDialogoAbierto(false);
+      setDestinatarioAEliminar(null);
     }
   };
 
@@ -92,7 +121,7 @@ const Destinatarios = () => {
             border: '2px solid #1E5631',
             fontWeight: 'bold',
             boxShadow: 'none',
-            marginLeft: 'auto', // Fuerza el empuje a la derecha
+            marginLeft: 'auto',
             '&:hover': { 
               backgroundColor: '#f4f7f5',
               boxShadow: 'none',
@@ -149,7 +178,8 @@ const Destinatarios = () => {
                   />
                 </TableCell>
                 <TableCell align="center">
-                  <IconButton onClick={() => handleEliminar(dest.id)} color="error">
+                  {/* Aquí cambiamos window.confirm por nuestra nueva función */}
+                  <IconButton onClick={() => solicitarEliminacion(dest.id)} color="error">
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
@@ -158,6 +188,41 @@ const Destinatarios = () => {
           </TableBody>
         </Table>
       </Paper>
+
+      {/* ========== MODAL DE CONFIRMACIÓN DE ELIMINACIÓN ========== */}
+      <Dialog 
+        open={dialogoAbierto} 
+        onClose={cancelarEliminacion}
+        PaperProps={{
+          sx: { borderRadius: '12px', padding: '8px' }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 'bold', color: '#1E5631', fontSize: '1.25rem' }}>
+          Confirmar Eliminación
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#37474F' }}>
+            ¿Estás seguro de que deseas eliminar este correo de la lista de destinatarios? 
+            Esta dirección dejará de recibir alertas de stock crítico de forma permanente.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ paddingX: 3, paddingBottom: 2 }}>
+          <Button 
+            onClick={cancelarEliminacion} 
+            sx={{ color: '#555', fontWeight: 'bold', textTransform: 'none' }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={confirmarEliminacion} 
+            variant="contained" 
+            color="error"
+            sx={{ fontWeight: 'bold', textTransform: 'none', borderRadius: '8px' }}
+          >
+            Eliminar Correo
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

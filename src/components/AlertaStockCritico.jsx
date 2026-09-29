@@ -1,5 +1,5 @@
 import React from 'react';
-import { Snackbar, Alert, Typography } from '@mui/material';
+import { Snackbar, Alert, Typography, Box } from '@mui/material';
 
 //Alerta que se muestra cuando el stock de un producto llega a un nivel crítico.
 const AlertaStockCritico = ({ open, onClose, productos }) => {
@@ -20,14 +20,28 @@ const AlertaStockCritico = ({ open, onClose, productos }) => {
         <Typography variant="subtitle2" fontWeight="bold">
           ¡ALERTA DE REABASTECIMIENTO!
         </Typography>
-        <Typography variant="body2">
+        <Typography variant="body2" sx={{ mt: 0.5 }}>
           El stock ha llegado al nivel crítico en los siguientes productos:
         </Typography>
-        <ul style={{ margin: '4px 0 0 0', paddingLeft: '20px' }}>
+        
+        <ul style={{ margin: '4px 0 12px 0', paddingLeft: '20px' }}>
           {productos.map((prod, index) => (
             <li key={index}><strong>{prod}</strong></li>
           ))}
         </ul>
+
+        {/* Nuevo bloque visual para confirmar la acción en segundo plano */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          mt: 1, 
+          pt: 1, 
+          borderTop: '1px solid rgba(255, 255, 255, 0.4)' // Línea sutil divisoria
+        }}>
+          <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+            ✉️ Se ha despachado un correo automático a los administradores.
+          </Typography>
+        </Box>
       </Alert>
     </Snackbar>
   );
