@@ -19,7 +19,7 @@ import Destinatarios from './pages/Configuracion/Destinatarios'; // Importa el c
 import HistorialAlertas from './pages/Configuracion/HistorialAlertas'; // Importa el componente HistorialAlertas
 import BitacoraBloqueo from './pages/Configuracion/BitacoraBloqueo'; // Importa el componente BitacoraBloqueo
 import Movimientos from './pages/Productos/Movimientos'; // Importa el componente Movimientos
-
+import ReporteExistencias from './pages/Reportes/ReporteExistencias'; // Importa el componente ReporteExistencias
 
 function App() {
   return (
@@ -52,7 +52,7 @@ function App() {
             </ProtectorRuta>
           } />
 
-           {/* Módulo de Categorías en App.jsx */}
+          {/* Módulo de Categorías en App.jsx */}
           <Route path="categorias" element={
             <ProtectorRuta modulo="categorias">
               <Categorias />
@@ -87,11 +87,11 @@ function App() {
           } />
 
           {/* Rutas para productos y movimientos */}
-          <Route path="inventario/movimiento" element={<
-            ProtectorRuta modulo="movimientos">
+          <Route path="inventario/movimiento" element={
+            <ProtectorRuta modulo="movimientos">
               <RegistrarMovimiento />
             </ProtectorRuta>
-            } />
+          } />
           
           <Route path="productos" element={
             <ProtectorRuta modulo="productos">
@@ -110,7 +110,10 @@ function App() {
               <BitacoraBloqueo />
             </ProtectorRuta>
           } />
+          
           <Route path="movimientos" element={<Movimientos />} />
+
+          <Route path="control-inventario" element={<ReporteExistencias />} />
           
         </Route>
       </Route>
