@@ -17,6 +17,7 @@ import ListaProductos from './pages/Productos/ListaProductos';
 import EditarProducto from './pages/Productos/EditarProducto';
 import Destinatarios from './pages/Configuracion/Destinatarios'; // Importa el componente Destinatarios
 import HistorialAlertas from './pages/Configuracion/HistorialAlertas'; // Importa el componente HistorialAlertas
+import ReporteExistencias from './pages/Reportes/ReporteExistencias'; // Importa el componente ReporteExistencias
 
 function App() {
   return (
@@ -101,6 +102,7 @@ function App() {
               <EditarProducto />
             </ProtectorRuta>
           } />
+          <Route path="control-inventario" element={<ReporteExistencias />} />
           
         </Route>
       </Route>
