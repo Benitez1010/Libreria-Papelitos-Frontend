@@ -4,9 +4,11 @@ import {
   Box, Typography, Alert, Paper, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, TextField, InputAdornment, 
   Button, IconButton, Tooltip, CircularProgress, FormControl, Select, 
-  MenuItem, TablePagination 
+  MenuItem, TablePagination, Dialog, DialogTitle, DialogContent, 
+  DialogContentText, DialogActions
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -44,6 +46,12 @@ const ListaProductos = () => {
 
   // Modal de registro
   const [modalAgregarOpen, setModalAgregarOpen] = useState(false);
+
+  // Estados para el modal de doble confirmación de borrado
+  const [dialogoEliminarOpen, setDialogoEliminarOpen] = useState(false);
+  const [productoAEliminar, setProductoAEliminar] = useState(null);
+  const [pasoConfirmacion, setPasoConfirmacion] = useState(1);
+  const [eliminando, setEliminando] = useState(false);
 
   // Función principal de carga de datos
   const obtenerDatosInventario = async (esRecargaManual = false) => {
@@ -103,30 +111,52 @@ const ListaProductos = () => {
     obtenerDatosInventario(true);
   };
 
-  // Función: Eliminar Producto
-  const handleEliminarProducto = async (id) => {
-    const confirmar = window.confirm("¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.");
-    if (!confirmar) return;
+  // Abre el modal de confirmación (paso 1) para el producto seleccionado
+  const abrirConfirmacionEliminar = (producto) => {
+    setProductoAEliminar(producto);
+    setPasoConfirmacion(1);
+    setDialogoEliminarOpen(true);
+  };
+
+  // Cierra y resetea el modal de confirmación
+  const cerrarConfirmacionEliminar = () => {
+    if (eliminando) return;
+    setDialogoEliminarOpen(false);
+    setProductoAEliminar(null);
+    setPasoConfirmacion(1);
+  };
+
+  // Avanza del paso 1 (advertencia) al paso 2 (confirmación final)
+  const avanzarAConfirmacionFinal = () => {
+    setPasoConfirmacion(2);
+  };
+
+  // Ejecuta la eliminación real contra el backend
+  const confirmarEliminacionProducto = async () => {
+    if (!productoAEliminar) return;
+    setEliminando(true);
 
     try {
-      const response = await fetch(`${ENDPOINTS.INVENTARIO.PRODUCTOS}${id}/`, {
+      const response = await fetch(`${ENDPOINTS.INVENTARIO.PRODUCTOS}${productoAEliminar.id}/`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        setProductos(productos.filter((producto) => producto.id !== id));
+        setProductos((prev) => prev.filter((p) => p.id !== productoAEliminar.id));
         setAlertaGlobal({ tipo: 'success', mensaje: 'Producto eliminado correctamente del inventario.' });
-        setTimeout(() => setAlertaGlobal({ tipo: '', mensaje: '' }), 3000);
       } else {
-        setAlertaGlobal({ 
-          tipo: 'error', 
-          mensaje: 'No se puede eliminar: el producto tiene existencias o movimientos registrados.' 
+        const data = await response.json().catch(() => ({}));
+        setAlertaGlobal({
+          tipo: 'warning',
+          mensaje: data.message || 'No se puede eliminar: el producto tiene existencias o movimientos registrados.',
         });
-        setTimeout(() => setAlertaGlobal({ tipo: '', mensaje: '' }), 4000);
       }
     } catch (error) {
       setAlertaGlobal({ tipo: 'error', mensaje: 'Error de red al intentar eliminar el producto.' });
-      setTimeout(() => setAlertaGlobal({ tipo: '', mensaje: '' }), 4000);
+    } finally {
+      setEliminando(false);
+      cerrarConfirmacionEliminar();
+      setTimeout(() => setAlertaGlobal({ tipo: '', mensaje: '' }), 5000);
     }
   };
 
@@ -320,7 +350,7 @@ const ListaProductos = () => {
                       {puedeEliminarProducto && (
                         <Tooltip title="Eliminar Producto">
                           <IconButton 
-                            onClick={() => handleEliminarProducto(producto.id)} 
+                            onClick={() => abrirConfirmacionEliminar(producto)} 
                             sx={{ color: '#d32f2f' }}
                           >
                             <DeleteIcon />
@@ -356,6 +386,61 @@ const ListaProductos = () => {
         />
       </Paper>
     
+      {/* MODAL DE DOBLE CONFIRMACIÓN DE BORRADO PERMANENTE */}
+      <Dialog open={dialogoEliminarOpen} onClose={cerrarConfirmacionEliminar} maxWidth="xs" fullWidth>
+        {pasoConfirmacion === 1 ? (
+          <>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <WarningAmberIcon color="warning" />
+              Eliminar Producto
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                ¿Estás seguro de que deseas eliminar el producto{' '}
+                <strong>{productoAEliminar?.nombre}</strong> del catálogo? Esta acción
+                no se puede deshacer.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={cerrarConfirmacionEliminar} color="inherit">
+                Cancelar
+              </Button>
+              <Button onClick={avanzarAConfirmacionFinal} variant="contained" color="error">
+                Continuar
+              </Button>
+            </DialogActions>
+          </>
+        ) : (
+          <>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#c62828' }}>
+              <WarningAmberIcon color="error" />
+              Confirmación Final
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                Esta es tu última oportunidad. El producto{' '}
+                <strong>{productoAEliminar?.nombre}</strong> y su configuración de
+                stock mínimo se eliminarán <strong>permanentemente</strong> del
+                sistema.
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={cerrarConfirmacionEliminar} color="inherit" disabled={eliminando}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmarEliminacionProducto}
+                variant="contained"
+                color="error"
+                disabled={eliminando}
+              >
+                {eliminando ? 'Eliminando...' : 'Sí, eliminar permanentemente'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
       <RegistrarProductoModal 
         open={modalAgregarOpen}
         onClose={() => setModalAgregarOpen(false)}
