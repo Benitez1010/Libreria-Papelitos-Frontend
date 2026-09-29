@@ -4,18 +4,17 @@ import {
   TableContainer, TableHead, TableRow, CircularProgress, Chip, Alert 
 } from '@mui/material';
 import LockClockIcon from '@mui/icons-material/LockClock';
-
+import { ENDPOINTS } from '../../services/api';
 
 const BitacoraBloqueo = () => {
   const [logs, setLogs] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
-const cargarBitacora = async () => {
+  const cargarBitacora = async () => {
     try {
       const token = localStorage.getItem('token');
-      // URL corregida a la ruta real de Django
-      const res = await fetch('http://127.0.0.1:8000/api/bitacora-bloqueo/', {
+      const res = await fetch(ENDPOINTS.SEGURIDAD.BITACORA_BLOQUEO, {
         method: 'GET',
         headers: {
           'Authorization': `Token ${token}`,
@@ -25,7 +24,7 @@ const cargarBitacora = async () => {
 
       if (res.ok) {
         const data = await res.json();
-        setLogs(data);
+        setLogs(data.results ?? data);
         setError('');
       } else {
         console.error("Error backend status:", res.status);
@@ -33,12 +32,12 @@ const cargarBitacora = async () => {
       }
     } catch (err) {
       console.error("Error de conexión:", err);
-      setError('Error de conexión con el servidor. Verifica que Django esté encendido.');
+      setError('Error de conexión con el servidor. Intenta nuevamente en unos minutos.');
     } finally {
       setCargando(false);
     }
   };
-  
+
   useEffect(() => {
     cargarBitacora();
   }, []);

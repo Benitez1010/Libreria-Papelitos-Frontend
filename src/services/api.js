@@ -19,6 +19,7 @@ export const ENDPOINTS = {
     LOGIN: `${BASE_URL}/login/`,
     RECUPERAR_PASSWORD: `${BASE_URL}/recuperar-password/`,
     RESTABLECER_PASSWORD: `${BASE_URL}/restablecer-password/`,
+    BITACORA_BLOQUEO: `${BASE_URL}/bitacora-bloqueo/`,
   },
   
   // Módulo de Usuarios
