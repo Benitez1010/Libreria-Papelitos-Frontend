@@ -109,4 +109,4 @@ const BitacoraBloqueo = () => {
   );
 };
 
-export default BitacoraBloqueo;
+export default BitacoraBloqueo; 
