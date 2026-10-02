@@ -7,7 +7,9 @@ export default function ReporteExistencias() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  // Normaliza API_BASE eliminando barras al final si existen para evitar //
+  const rawApi = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+  const API_BASE = rawApi.replace(/\/+$/, '');
 
   const getHeaders = () => {
     const token = localStorage.getItem('token');
@@ -21,7 +23,7 @@ export default function ReporteExistencias() {
     // Cargar categorías para el filtro
     fetch(`${API_BASE}/categorias/`, { headers: getHeaders() })
       .then(res => res.ok ? res.json() : [])
-      .then(data => setCategorias(data))
+      .then(data => setCategorias(Array.isArray(data) ? data : []))
       .catch(err => console.error('Error al cargar categorías:', err));
   }, []);
 
@@ -36,7 +38,7 @@ export default function ReporteExistencias() {
         return res.json();
       })
       .then(data => {
-        setProductos(data);
+        setProductos(Array.isArray(data) ? data : []);
         setCargando(false);
       })
       .catch(err => {
