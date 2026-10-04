@@ -7,9 +7,10 @@ export default function ReporteExistencias() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
-  // Normaliza API_BASE eliminando barras al final si existen para evitar //
-  const rawApi = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-  const API_BASE = rawApi.replace(/\/+$/, '');
+  // Normaliza API_BASE: quita barras finales y asegura el prefijo /api
+  const rawApi = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+  const cleanUrl = rawApi.replace(/\/+$/, '');
+  const API_BASE = cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
 
   const getHeaders = () => {
     const token = localStorage.getItem('token');
