@@ -4,10 +4,14 @@ import {
   TableHead, TableRow,TablePagination, Button, Dialog, DialogTitle, DialogContent,
   DialogContentText, DialogActions, Chip, Snackbar, Alert,
   CircularProgress, TextField, Grid, MenuItem, FormControl,
-  InputLabel, Select, FormHelperText
+  InputLabel, Select, FormHelperText, TableSortLabel, Tooltip
 } from '@mui/material';
-import { Block, CheckCircle, PersonAdd, Visibility, VisibilityOff } from '@mui/icons-material';
+import { PersonAdd, Visibility, VisibilityOff } from '@mui/icons-material';
 import GroupIcon from '@mui/icons-material/Group';
+import SearchIcon from '@mui/icons-material/Search';
+import EditIcon from '@mui/icons-material/Edit';
+import PersonOffIcon from '@mui/icons-material/PersonOff';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
 import { IconButton, InputAdornment } from '@mui/material';
 import { ENDPOINTS } from '../../services/api';
 
@@ -17,7 +21,18 @@ const ROLES = [
   { value: 'CAJA', label: 'Operador de Caja' },
 ];
 
+const COLUMNAS = [
+  { id: 'username', label: 'Usuario', minWidth: 150 },
+  { id: 'nombre_completo', label: 'Nombre Completo', minWidth: 180 },
+  { id: 'email', label: 'Correo Electrónico', minWidth: 220 },
+  { id: 'rol_display', label: 'Rol', minWidth: 160 },
+  { id: 'estado', label: 'Estado', minWidth: 110 },
+  { id: 'date_joined', label: 'Fecha de Registro', minWidth: 150 },
+];
+
 const Usuarios = () => {
+  const verdePapelitos = '#1E5631';
+
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
@@ -41,8 +56,19 @@ const Usuarios = () => {
   // Estado para saber si el usuario actual es admin
   const [usuarioActual, setUsuarioActual] = useState(null);
 
+  // Estados para la edición de datos personales
+  const [modalEdicionAbierto, setModalEdicionAbierto] = useState(false);
+  const [usuarioEditando, setUsuarioEditando] = useState(null);
+  const [formEdicion, setFormEdicion] = useState({ username: '', nombre_completo: '', email: '' });
+  const [erroresEdicion, setErroresEdicion] = useState({});
+  const [cargandoEdicion, setCargandoEdicion] = useState(false);
+
   //para busqueda
   const [busqueda, setBusqueda] = useState('');
+
+  //para ordenamiento por columna
+  const [ordenPor, setOrdenPor] = useState('username');
+  const [ordenDireccion, setOrdenDireccion] = useState('asc');
 
   //para paginacion
   const [pagina, setPagina] = useState(0);
@@ -172,10 +198,36 @@ const Usuarios = () => {
     return { nivel: 'Fuerte', color: '#2e7d32', ancho: 100 };
   };
 
-  const usuariosFiltrados = usuarios.filter((usuario) =>
-    usuario.username.toLowerCase().includes(busqueda.toLowerCase()) ||
-    usuario.email.toLowerCase().includes(busqueda.toLowerCase())
-  ).sort((a, b) => a.username.localeCompare(b.username));
+  const obtenerValorOrden = (usuario, columna) => {
+    if (columna === 'estado') return usuario.is_active ? 'Activo' : 'Inactivo';
+    if (columna === 'rol_display') return usuario.rol_display || usuario.rol || '';
+    if (columna === 'date_joined') return usuario.date_joined || '';
+    return usuario[columna] || '';
+  };
+
+  const handleOrdenar = (columna) => {
+    const esDescendente = ordenPor === columna && ordenDireccion === 'asc';
+    setOrdenDireccion(esDescendente ? 'desc' : 'asc');
+    setOrdenPor(columna);
+    setPagina(0);
+  };
+
+    const usuariosFiltrados = usuarios.filter((usuario) => {
+    const termino = busqueda.toLowerCase();
+    return (
+      (usuario.username || '').toLowerCase().includes(termino) ||
+      (usuario.nombre_completo || '').toLowerCase().includes(termino) ||
+      (usuario.email || '').toLowerCase().includes(termino) ||
+      (usuario.rol_display || '').toLowerCase().includes(termino)
+    );
+  }).sort((a, b) => {
+    const valorA = obtenerValorOrden(a, ordenPor);
+    const valorB = obtenerValorOrden(b, ordenPor);
+    const comparacion = ordenPor === 'date_joined'
+      ? new Date(valorA) - new Date(valorB)
+      : String(valorA).localeCompare(String(valorB), 'es', { sensitivity: 'base' });
+    return ordenDireccion === 'asc' ? comparacion : -comparacion;
+  });
 
     const handleChangePage = (event, newPage) => {
     setPagina(newPage);
@@ -232,10 +284,81 @@ const Usuarios = () => {
     }
   };
 
+  // ========== FUNCIONES DE EDICIÓN ==========
+  const abrirModalEdicion = (usuario) => {
+    setUsuarioEditando(usuario);
+    setFormEdicion({
+      username: usuario.username || '',
+      nombre_completo: usuario.nombre_completo || '',
+      email: usuario.email || ''
+    });
+    setErroresEdicion({});
+    setModalEdicionAbierto(true);
+  };
+
+  const cerrarModalEdicion = () => {
+    setModalEdicionAbierto(false);
+    setUsuarioEditando(null);
+    setErroresEdicion({});
+  };
+
+  const handleChangeEdicion = (e) => {
+    const { name, value } = e.target;
+    setFormEdicion({ ...formEdicion, [name]: value });
+    if (erroresEdicion[name]) {
+      setErroresEdicion({ ...erroresEdicion, [name]: '' });
+    }
+  };
+
+  const validarFormularioEdicion = () => {
+    const nuevosErrores = {};
+    if (!formEdicion.username.trim()) nuevosErrores.username = 'El nombre de usuario es obligatorio';
+    if (!formEdicion.nombre_completo.trim()) nuevosErrores.nombre_completo = 'El nombre completo es obligatorio';
+    if (!formEdicion.email.trim()) nuevosErrores.email = 'El correo electrónico es obligatorio';
+
+    setErroresEdicion(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  const guardarEdicion = async () => {
+    if (!validarFormularioEdicion()) return;
+
+    setCargandoEdicion(true);
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(
+        `${ENDPOINTS.USUARIOS}${usuarioEditando.id}/editar/`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formEdicion),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSnackbar({ abierto: true, mensaje: data.mensaje, tipo: 'success' });
+        cerrarModalEdicion();
+        obtenerUsuarios();
+      } else {
+        const mensajeError = data.username?.[0] || data.email?.[0] || data.nombre_completo?.[0] || data.error || 'Error al actualizar usuario';
+        setSnackbar({ abierto: true, mensaje: mensajeError, tipo: 'error' });
+      }
+    } catch (error) {
+      setSnackbar({ abierto: true, mensaje: 'Error de conexión', tipo: 'error' });
+    } finally {
+      setCargandoEdicion(false);
+    }
+  };
+
   if (cargando) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress sx={{ color: '#1E5631' }} />
+        <CircularProgress sx={{ color: verdePapelitos }} />
       </Box>
     );
   }
@@ -244,22 +367,30 @@ const Usuarios = () => {
     <Box sx={{ p: 4 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <GroupIcon sx={{ fontSize: 40, color: '#1E5631' }} />
+          <GroupIcon sx={{ fontSize: 40, color: verdePapelitos }} />
           <Typography variant="h4" fontWeight="bold">
             Gestión de Usuarios
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <TextField
-            placeholder="Buscar usuario..."
+            placeholder="Buscar por usuario, nombre, correo o rol"
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => { setBusqueda(e.target.value); setPagina(0); }}
             size="small"
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: verdePapelitos }} />
+                  </InputAdornment>
+                )
+              }
+            }}
             sx={{
               backgroundColor: 'white',
-              borderRadius: 2,
-              '& .MuiOutlinedInput-root': { borderRadius: 2 },
-              minWidth: '250px'
+              '& .MuiOutlinedInput-root': { borderRadius: '8px' },
+              width: { xs: '100%', sm: '340px' }
             }}
           />
           {usuarioActual?.rol === 'ADMIN' && (
@@ -268,9 +399,9 @@ const Usuarios = () => {
               startIcon={<PersonAdd />}
               onClick={abrirModalRegistro}
               sx={{
-                backgroundColor: '#1E5631',
+                backgroundColor: verdePapelitos,
                 textTransform: 'none',
-                borderRadius: 2,
+                borderRadius: '8px',
                 '&:hover': { backgroundColor: '#143D22' }
               }}
             >
@@ -281,74 +412,105 @@ const Usuarios = () => {
       </Box>
       
 
-      <TableContainer component={Paper} elevation={3} sx={{ borderRadius: 3 }}>
-        <Table>
-          <TableHead>
-             <TableRow sx={{ backgroundColor: '#1E5631' }}>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Usuario</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nombre Completo</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Correo Electrónico</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Rol</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Estado</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Fecha de Registro</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-                        {usuariosFiltrados
-              .slice(pagina * filasPorPagina, pagina * filasPorPagina + filasPorPagina)
-              .map((usuario) => (
-                <TableRow key={usuario.id} sx={{ '&:hover': { backgroundColor: 'rgba(30, 86, 49, 0.05)' } }}>
-                <TableCell>{usuario.id}</TableCell>
-                <TableCell sx={{ fontWeight: 500 }}>{usuario.username}</TableCell>
-                <TableCell>{usuario.nombre_completo || '—'}</TableCell>
-                <TableCell sx={{ fontStyle: usuario.rol === 'ADMIN' ? 'arial' : 'normal', color: usuario.rol === 'ADMIN' ? '#000000' : 'inherit' }}>
-                  {(usuario.email || '—')}
-                </TableCell>
-                <TableCell>
-                  <Chip label={usuario.rol_display || usuario.rol} color={getColorRol(usuario.rol)} size="small" sx={{ fontWeight: 500 }} />
-                </TableCell>
-                <TableCell>
-                  <Chip label={usuario.estado || (usuario.is_active ? 'Activo' : 'Inactivo')} color={getColorEstado(usuario.is_active)} size="small" sx={{ fontWeight: 500 }} />
-                </TableCell>
-                <TableCell>{new Date(usuario.date_joined).toLocaleDateString('es-ES')}</TableCell>
-                <TableCell>
-                  {usuario.is_active ? (
-                    <Button variant="outlined" color="error" size="small" startIcon={<Block />} onClick={() => abrirModal(usuario, 'desactivar')} sx={{ textTransform: 'none', borderRadius: 2 }}>
-                      Dar de Baja
-                    </Button>
-                  ) : (
-                    <Button variant="outlined" color="success" size="small" startIcon={<CheckCircle />} onClick={() => abrirModal(usuario, 'reactivar')} sx={{ textTransform: 'none', borderRadius: 2 }}>
-                      Reactivar
-                    </Button>
-                  )}
-                </TableCell>
+      <Paper elevation={3} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
+        <TableContainer>
+          <Table>
+            <TableHead sx={{ backgroundColor: verdePapelitos }}>
+              <TableRow>
+                {COLUMNAS.map((columna) => (
+                  <TableCell
+                    key={columna.id}
+                    sortDirection={ordenPor === columna.id ? ordenDireccion : false}
+                    sx={{ color: 'white', fontWeight: 'bold', minWidth: columna.minWidth }}
+                  >
+                    <TableSortLabel
+                      active={ordenPor === columna.id}
+                      direction={ordenPor === columna.id ? ordenDireccion : 'asc'}
+                      onClick={() => handleOrdenar(columna.id)}
+                      sx={{
+                        color: 'white',
+                        '&:hover': { color: '#d7e8dc' },
+                        '&.Mui-active': { color: 'white' },
+                        '& .MuiTableSortLabel-icon': { color: 'white !important' }
+                      }}
+                    >
+                      {columna.label}
+                    </TableSortLabel>
+                  </TableCell>
+                ))}
+                <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {usuariosFiltrados.length > 0 ? (
+                usuariosFiltrados
+                  .slice(pagina * filasPorPagina, pagina * filasPorPagina + filasPorPagina)
+                  .map((usuario) => (
+                  <TableRow key={usuario.id} hover>
+                    <TableCell sx={{ fontWeight: 500 }}>{usuario.username}</TableCell>
+                    <TableCell>{usuario.nombre_completo || '—'}</TableCell>
+                    <TableCell>{usuario.email || '—'}</TableCell>
+                    <TableCell>
+                      <Chip label={usuario.rol_display || usuario.rol} color={getColorRol(usuario.rol)} size="small" sx={{ fontWeight: 500 }} />
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={usuario.estado || (usuario.is_active ? 'Activo' : 'Inactivo')} color={getColorEstado(usuario.is_active)} size="small" sx={{ fontWeight: 500 }} />
+                    </TableCell>
+                    <TableCell>{new Date(usuario.date_joined).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
+                    <TableCell align="center">
+                      {usuarioActual?.rol === 'ADMIN' && (
+                        <Tooltip title="Editar Datos">
+                          <IconButton onClick={() => abrirModalEdicion(usuario)} sx={{ color: verdePapelitos, mr: 0.5 }}>
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {usuario.is_active ? (
+                        <Tooltip title="Dar de Baja">
+                          <IconButton onClick={() => abrirModal(usuario, 'desactivar')} sx={{ color: '#d32f2f' }}>
+                            <PersonOffIcon />
+                          </IconButton>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title="Reactivar Usuario">
+                          <IconButton onClick={() => abrirModal(usuario, 'reactivar')} sx={{ color: '#2e7d32' }}>
+                            <HowToRegIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                    No se encontraron usuarios que coincidan con la búsqueda.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-           <TablePagination
-        component="div"
-        count={usuariosFiltrados.length}
-        page={pagina}
-        onPageChange={handleChangePage}
-        rowsPerPage={filasPorPagina}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[25, 50, 100]}
-        labelRowsPerPage="Filas por página:"
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
-        sx={{
-          '& .MuiTablePagination-toolbar': { backgroundColor: 'white', borderRadius: '0 0 12px 12px' },
-          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': { color: '#1E5631', fontWeight: 500 },
-        }}
-      />
+        <TablePagination
+          component="div"
+          count={usuariosFiltrados.length}
+          page={pagina}
+          onPageChange={handleChangePage}
+          rowsPerPage={filasPorPagina}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[25, 50, 100]}
+          labelRowsPerPage="Filas por página:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+          sx={{
+            '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': { color: verdePapelitos, fontWeight: 500 },
+          }}
+        />
+      </Paper>
 
       {/* ========== MODAL DAR DE BAJA / REACTIVAR ========== */}
       <Dialog open={modalAbierto} onClose={cerrarModal} PaperProps={{ sx: { borderRadius: 3, minWidth: '400px' } }}>
-        <DialogTitle sx={{ color: '#1E5631', fontWeight: 'bold' }}>
+        <DialogTitle sx={{ color: verdePapelitos, fontWeight: 'bold' }}>
           {accion === 'desactivar' ? 'Confirmar Desactivación' : 'Confirmar Reactivación'}
         </DialogTitle>
         <DialogContent>
@@ -378,7 +540,7 @@ const Usuarios = () => {
 
       {/*  MODAL REGISTRO DE NUEVO USUARIO */}
       <Dialog open={modalRegistroAbierto} onClose={cerrarModalRegistro} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-        <DialogTitle sx={{ color: '#1E5631', fontWeight: 'bold' }}>
+        <DialogTitle sx={{ color: verdePapelitos, fontWeight: 'bold' }}>
           Registrar Nuevo Usuario
         </DialogTitle>
         <DialogContent>
@@ -501,13 +663,81 @@ const Usuarios = () => {
             variant="contained"
             disabled={cargandoRegistro}
             sx={{
-              backgroundColor: '#1E5631',
+              backgroundColor: verdePapelitos,
               textTransform: 'none',
               borderRadius: 2,
               '&:hover': { backgroundColor: '#143D22' }
             }}
           >
             {cargandoRegistro ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ========== MODAL EDITAR DATOS PERSONALES ========== */}
+      <Dialog open={modalEdicionAbierto} onClose={cerrarModalEdicion} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle sx={{ color: verdePapelitos, fontWeight: 'bold' }}>
+          Editar Datos del Usuario
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 1 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Nombre de Usuario"
+                  name="username"
+                  value={formEdicion.username}
+                  onChange={handleChangeEdicion}
+                  error={!!erroresEdicion.username}
+                  helperText={erroresEdicion.username}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Nombre Completo"
+                  name="nombre_completo"
+                  value={formEdicion.nombre_completo}
+                  onChange={handleChangeEdicion}
+                  error={!!erroresEdicion.nombre_completo}
+                  helperText={erroresEdicion.nombre_completo}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Correo Electrónico"
+                  name="email"
+                  type="email"
+                  value={formEdicion.email}
+                  onChange={handleChangeEdicion}
+                  error={!!erroresEdicion.email}
+                  helperText={erroresEdicion.email}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button onClick={cerrarModalEdicion} variant="outlined" sx={{ textTransform: 'none', borderRadius: 2, color: '#666', borderColor: '#ccc' }}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={guardarEdicion}
+            variant="contained"
+            disabled={cargandoEdicion}
+            sx={{
+              backgroundColor: verdePapelitos,
+              textTransform: 'none',
+              borderRadius: 2,
+              '&:hover': { backgroundColor: '#143D22' }
+            }}
+          >
+            {cargandoEdicion ? <CircularProgress size={20} sx={{ color: 'white' }} /> : 'Guardar Cambios'}
           </Button>
         </DialogActions>
       </Dialog>
