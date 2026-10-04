@@ -18,14 +18,25 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Tooltip
+  Tooltip,
+  Menu,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import PrintIcon from '@mui/icons-material/Print';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { ENDPOINTS } from '../../services/api';
+
+// Importamos el generador del reporte desde la carpeta Reportes
+import { exportarExcelAltaRotacion, exportarPDFAltaRotacion } from '../Reportes/ReporteAltaRotacion';
 
 const Movimientos = () => {
   const verdePapelitos = '#1E5631';
@@ -40,6 +51,18 @@ const Movimientos = () => {
   const [filtroTipo, setFiltroTipo] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+
+  // Control del menú desplegable Exportar
+  const [anchorElExport, setAnchorElExport] = useState(null);
+  const openExportMenu = Boolean(anchorElExport);
+
+  const handleOpenExport = (event) => {
+    setAnchorElExport(event.currentTarget);
+  };
+
+  const handleCloseExport = () => {
+    setAnchorElExport(null);
+  };
 
   const cargarHistorial = async () => {
     setCargando(true);
@@ -60,7 +83,7 @@ const Movimientos = () => {
       } else {
         setError(`Error del servidor (${res.status}): No se pudo obtener el historial.`);
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión con el servidor backend.');
     } finally {
       setCargando(false);
@@ -116,9 +139,9 @@ const Movimientos = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
         <SyncAltIcon sx={{ fontSize: 36, color: verdePapelitos }} />
         <Typography 
-        variant="h4" 
-        fontWeight="bold" 
-        sx={{ color: '#222222', letterSpacing: '-0.5px' }}>
+          variant="h4" 
+          fontWeight="bold" 
+          sx={{ color: '#222222', letterSpacing: '-0.5px' }}>
           Historial de Movimientos
         </Typography>
       </Box>
@@ -134,7 +157,7 @@ const Movimientos = () => {
           gap: 2
         }}
       >
-        {/* Lado Izquierdo: Buscador + Tipo + Recargar */}
+        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Exportar */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             size="small"
@@ -193,6 +216,7 @@ const Movimientos = () => {
             </Select>
           </FormControl>
 
+          {/* Botón Recargar */}
           <Button
             onClick={cargarHistorial}
             variant="outlined"
@@ -211,9 +235,53 @@ const Movimientos = () => {
           >
             Recargar
           </Button>
+
+          {/* Botón Exportar */}
+          <Button
+            onClick={handleOpenExport}
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+            endIcon={<KeyboardArrowDownIcon />}
+            sx={{
+              backgroundColor: '#fff',
+              color: '#424242',
+              borderColor: '#c4c4c4',
+              textTransform: 'none',
+              borderRadius: '8px',
+              height: '40px',
+              px: 2,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              '&:hover': { backgroundColor: '#f8f9fa', borderColor: '#9e9e9e' }
+            }}
+          >
+            Exportar
+          </Button>
+
+          {/* Menú Desplegable con llamadas limpias al módulo de reportes */}
+          <Menu
+            anchorEl={anchorElExport}
+            open={openExportMenu}
+            onClose={handleCloseExport}
+            PaperProps={{
+              sx: { borderRadius: '8px', minWidth: 200, mt: 0.5, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }
+            }}
+          >
+            <MenuItem onClick={() => { handleCloseExport(); exportarPDFAltaRotacion(movimientos, fechaDesde, fechaHasta); }}>
+              <ListItemIcon><PrintIcon fontSize="small" sx={{ color: '#555' }} /></ListItemIcon>
+              <ListItemText primary="Impresión Rápida" primaryTypographyProps={{ fontSize: '0.88rem' }} />
+            </MenuItem>
+            <MenuItem onClick={() => { handleCloseExport(); exportarPDFAltaRotacion(movimientos, fechaDesde, fechaHasta); }}>
+              <ListItemIcon><PictureAsPdfIcon fontSize="small" sx={{ color: '#d32f2f' }} /></ListItemIcon>
+              <ListItemText primary="Exportar a PDF" primaryTypographyProps={{ fontSize: '0.88rem' }} />
+            </MenuItem>
+            <MenuItem onClick={() => { handleCloseExport(); exportarExcelAltaRotacion(movimientos, fechaDesde, fechaHasta); }}>
+              <ListItemIcon><TableChartIcon fontSize="small" sx={{ color: '#2e7d32' }} /></ListItemIcon>
+              <ListItemText primary="Exportar a Excel (.xlsx)" primaryTypographyProps={{ fontSize: '0.88rem' }} />
+            </MenuItem>
+          </Menu>
         </Box>
 
-        {/* Lado Derecho: Filtro de Fechas profesional sin colisión de bordes */}
+        {/* Lado Derecho: Filtro de Fechas */}
         <Paper
           elevation={0}
           sx={{
