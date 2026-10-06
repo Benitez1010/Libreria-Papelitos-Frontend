@@ -18,25 +18,18 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Tooltip,
-  Menu,
-  ListItemIcon,
-  ListItemText
+  Tooltip
 } from '@mui/material';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import TableChartIcon from '@mui/icons-material/TableChart';
-import PrintIcon from '@mui/icons-material/Print';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { ENDPOINTS } from '../../services/api';
 
-// Importamos el generador del reporte desde la carpeta Reportes
-import { exportarExcelAltaRotacion, exportarPDFAltaRotacion } from '../Reportes/ReporteAltaRotacion';
+// Modal de la historia REP-03 modularizado en la carpeta Reportes
+import ReporteAltaRotacion from '../Reportes/ReporteAltaRotacion';
 
 const Movimientos = () => {
   const verdePapelitos = '#1E5631';
@@ -52,17 +45,8 @@ const Movimientos = () => {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
-  // Control del menú desplegable Exportar
-  const [anchorElExport, setAnchorElExport] = useState(null);
-  const openExportMenu = Boolean(anchorElExport);
-
-  const handleOpenExport = (event) => {
-    setAnchorElExport(event.currentTarget);
-  };
-
-  const handleCloseExport = () => {
-    setAnchorElExport(null);
-  };
+  // Control para abrir/cerrar el modal de alta rotación
+  const [modalAbierto, setModalAbierto] = useState(false);
 
   const cargarHistorial = async () => {
     setCargando(true);
@@ -157,7 +141,7 @@ const Movimientos = () => {
           gap: 2
         }}
       >
-        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Exportar */}
+        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Botón Reporte */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             size="small"
@@ -236,52 +220,28 @@ const Movimientos = () => {
             Recargar
           </Button>
 
-          {/* Botón Exportar */}
+          {/* Botón de REP-03: Abre el modal del reporte de demanda */}
           <Button
-            onClick={handleOpenExport}
-            variant="outlined"
-            startIcon={<FileDownloadIcon />}
-            endIcon={<KeyboardArrowDownIcon />}
+            onClick={() => setModalAbierto(true)}
+            variant="contained"
+            startIcon={<TrendingUpIcon />}
             sx={{
-              backgroundColor: '#fff',
-              color: '#424242',
-              borderColor: '#c4c4c4',
+              backgroundColor: verdePapelitos,
+              color: '#fff',
               textTransform: 'none',
               borderRadius: '8px',
               height: '40px',
               px: 2,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              '&:hover': { backgroundColor: '#f8f9fa', borderColor: '#9e9e9e' }
+              fontWeight: 'bold',
+              boxShadow: '0 2px 4px rgba(30,86,49,0.2)',
+              '&:hover': { backgroundColor: '#143c22' }
             }}
           >
-            Exportar
+            Ver Más Vendidos
           </Button>
-
-          {/* Menú Desplegable con llamadas limpias al módulo de reportes */}
-          <Menu
-            anchorEl={anchorElExport}
-            open={openExportMenu}
-            onClose={handleCloseExport}
-            PaperProps={{
-              sx: { borderRadius: '8px', minWidth: 200, mt: 0.5, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }
-            }}
-          >
-            <MenuItem onClick={() => { handleCloseExport(); exportarPDFAltaRotacion(movimientos, fechaDesde, fechaHasta); }}>
-              <ListItemIcon><PrintIcon fontSize="small" sx={{ color: '#555' }} /></ListItemIcon>
-              <ListItemText primary="Impresión Rápida" primaryTypographyProps={{ fontSize: '0.88rem' }} />
-            </MenuItem>
-            <MenuItem onClick={() => { handleCloseExport(); exportarPDFAltaRotacion(movimientos, fechaDesde, fechaHasta); }}>
-              <ListItemIcon><PictureAsPdfIcon fontSize="small" sx={{ color: '#d32f2f' }} /></ListItemIcon>
-              <ListItemText primary="Exportar a PDF" primaryTypographyProps={{ fontSize: '0.88rem' }} />
-            </MenuItem>
-            <MenuItem onClick={() => { handleCloseExport(); exportarExcelAltaRotacion(movimientos, fechaDesde, fechaHasta); }}>
-              <ListItemIcon><TableChartIcon fontSize="small" sx={{ color: '#2e7d32' }} /></ListItemIcon>
-              <ListItemText primary="Exportar a Excel (.xlsx)" primaryTypographyProps={{ fontSize: '0.88rem' }} />
-            </MenuItem>
-          </Menu>
         </Box>
 
-        {/* Lado Derecho: Filtro de Fechas */}
+        {/* Lado Derecho: Filtro de Fechas profesional sin colisión de bordes */}
         <Paper
           elevation={0}
           sx={{
@@ -428,6 +388,13 @@ const Movimientos = () => {
           </Table>
         </TableContainer>
       )}
+
+      {/* 4. Llamada al Modal Modularizado (Reportes/ReporteAltaRotacion.jsx) */}
+      <ReporteAltaRotacion
+        open={modalAbierto}
+        onClose={() => setModalAbierto(false)}
+        movimientos={movimientos}
+      />
     </Box>
   );
 };

@@ -1,188 +1,245 @@
-/**
- * Generador Oficial de Reporte: Análisis de Productos de Alta Rotación
- * Librería y Papelería Papelitos
- */
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Box,
+  Typography,
+  Paper,
+  Grid,
+  TextField,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Card,
+  CardContent,
+  IconButton,
+  Alert
+} from '@mui/material';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import StarIcon from '@mui/icons-material/Star';
+import CloseIcon from '@mui/icons-material/Close';
 
-// 1. Procesa y agrupa las salidas ordenándolas de mayor a menor
-export const procesarAltaRotacion = (movimientos, fechaDesde, fechaHasta) => {
-  const salidas = movimientos.filter((m) => {
-    if (m.tipo !== 'SALIDA') return false;
-    const fechaSoloDia = m.fecha_hora ? m.fecha_hora.split('T')[0] : '';
-    let coincideDesde = true;
-    let coincideHasta = true;
-    if (fechaDesde) coincideDesde = fechaSoloDia >= fechaDesde;
-    if (fechaHasta) coincideHasta = fechaSoloDia <= fechaHasta;
-    return coincideDesde && coincideHasta;
-  });
+const ReporteAltaRotacion = ({ open, onClose, movimientos = [] }) => {
+  const verdePapelitos = '#1E5631';
 
-  const conteo = {};
-  salidas.forEach((m) => {
-    const nombre = m.producto_nombre || 'Sin nombre';
-    conteo[nombre] = (conteo[nombre] || 0) + Number(m.cantidad || 0);
-  });
+  // Fechas por defecto: últimos 30 días
+  const hoy = new Date().toISOString().split('T')[0];
+  const hace30Dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-  return Object.entries(conteo)
-    .map(([producto, total_salidas]) => ({ producto, total_salidas }))
-    .sort((a, b) => b.total_salidas - a.total_salidas);
+  const [fechaDesde, setFechaDesde] = useState(hace30Dias);
+  const [fechaHasta, setFechaHasta] = useState(hoy);
+  const [datosRanking, setDatosRanking] = useState([]);
+  const [errorFecha, setErrorFecha] = useState('');
+
+  // Lógica de cálculo: agrupa salidas por producto y las ordena de mayor a menor
+  const procesarAltaRotacion = (desde, hasta) => {
+    if (desde && hasta && hasta < desde) {
+      setErrorFecha('La fecha "Hasta" no puede ser anterior a la fecha "Desde".');
+      return;
+    }
+    setErrorFecha('');
+
+    const salidasEnRango = movimientos.filter((m) => {
+      if (m.tipo !== 'SALIDA') return false;
+      const dia = m.fecha_hora ? m.fecha_hora.split('T')[0] : '';
+      let okDesde = true;
+      let okHasta = true;
+      if (desde) okDesde = dia >= desde;
+      if (hasta) okHasta = dia <= hasta;
+      return okDesde && okHasta;
+    });
+
+    const conteo = {};
+    salidasEnRango.forEach((m) => {
+      const nombre = m.producto_nombre || 'Sin nombre';
+      conteo[nombre] = (conteo[nombre] || 0) + Number(m.cantidad || 0);
+    });
+
+    const lista = Object.entries(conteo)
+      .map(([producto, total_salidas]) => ({ producto, total_salidas }))
+      .sort((a, b) => b.total_salidas - a.total_salidas)
+      .map((item, idx) => ({ ...item, ranking: idx + 1 }));
+
+    setDatosRanking(lista);
+  };
+
+  useEffect(() => {
+    if (open) {
+      procesarAltaRotacion(fechaDesde, fechaHasta);
+    }
+  }, [open, movimientos]);
+
+  // Si se cambia la fecha "Desde", ajusta "Hasta" automáticamente si queda desfasada
+  const handleCambioDesde = (nuevaFechaDesde) => {
+    setFechaDesde(nuevaFechaDesde);
+    if (fechaHasta && fechaHasta < nuevaFechaDesde) {
+      setFechaHasta(nuevaFechaDesde);
+    }
+  };
+
+  const handleGenerarReporte = () => {
+    procesarAltaRotacion(fechaDesde, fechaHasta);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+    >
+      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <TrendingUpIcon sx={{ color: verdePapelitos, fontSize: 32 }} />
+          <Box>
+            <Typography variant="h6" fontWeight="bold" sx={{ color: verdePapelitos }}>
+              Reporte: Productos con Mayor Demanda y Rotación
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              Análisis de unidades despachadas para compras y reabastecimiento estratégico
+            </Typography>
+          </Box>
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent dividers>
+        {/* Barra de Filtro de Fechas dentro del Reporte */}
+        <Paper elevation={0} sx={{ p: 2, bgcolor: '#fbfbfb', border: '1px solid #e0e0e0', borderRadius: 2, mb: 3 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                size="small"
+                type="date"
+                label="Desde"
+                value={fechaDesde}
+                onChange={(e) => handleCambioDesde(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                size="small"
+                type="date"
+                label="Hasta"
+                value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                // Bloquea en el selector del calendario los días anteriores a 'Desde'
+                inputProps={{
+                  min: fechaDesde || undefined
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Button
+                fullWidth
+                variant="contained"
+                startIcon={<FilterAltIcon />}
+                onClick={handleGenerarReporte}
+                sx={{
+                  bgcolor: verdePapelitos,
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  height: '40px',
+                  '&:hover': { bgcolor: '#143c22' }
+                }}
+              >
+                Generar Reporte
+              </Button>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {errorFecha && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errorFecha}
+          </Alert>
+        )}
+
+        {datosRanking.length === 0 ? (
+          <Alert severity="info" sx={{ my: 2 }}>
+            No se encontraron registros de salidas (despachos) en el rango de fechas seleccionado.
+          </Alert>
+        ) : (
+          <>
+            {/* Tarjeta del Producto Top 1 */}
+            <Card sx={{ bgcolor: '#f4fbf7', border: `1.5px solid ${verdePapelitos}`, borderRadius: 2, mb: 3 }}>
+              <CardContent sx={{ py: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <StarIcon sx={{ color: '#d32f2f', fontSize: 20 }} />
+                  <Typography variant="caption" sx={{ color: verdePapelitos, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    Líder en Demanda Estacional
+                  </Typography>
+                </Box>
+                <Typography variant="h6" fontWeight="bold" sx={{ color: '#222', mt: 0.5 }}>
+                  {datosRanking[0].producto}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#555' }}>
+                  Total despachado: <strong style={{ color: verdePapelitos, fontSize: '1.05rem' }}>{datosRanking[0].total_salidas} unidades</strong>
+                </Typography>
+              </CardContent>
+            </Card>
+
+            {/* Tabla de Ranking Ordenada */}
+            <TableContainer component={Paper} elevation={1} sx={{ borderRadius: 2 }}>
+              <Table size="small">
+                <TableHead sx={{ bgcolor: verdePapelitos }}>
+                  <TableRow>
+                    <TableCell align="center" sx={{ color: '#fff', fontWeight: 'bold' }}>RANKING</TableCell>
+                    <TableCell sx={{ color: '#fff', fontWeight: 'bold' }}>PRODUCTO</TableCell>
+                    <TableCell align="center" sx={{ color: '#fff', fontWeight: 'bold' }}>UNIDADES DESPACHADAS</TableCell>
+                    <TableCell align="center" sx={{ color: '#fff', fontWeight: 'bold' }}>NIVEL DE ROTACIÓN</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {datosRanking.map((item) => (
+                    <TableRow key={item.ranking} hover>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', color: verdePapelitos }}>
+                        #{item.ranking}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{item.producto}</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                        {item.total_salidas}
+                      </TableCell>
+                      <TableCell align="center">
+                        {item.ranking === 1 ? (
+                          <Chip size="small" label="Líder en Demanda" sx={{ bgcolor: '#fde8e8', color: '#d32f2f', fontWeight: 'bold' }} />
+                        ) : item.ranking <= 3 ? (
+                          <Chip size="small" label="Alta Demanda" sx={{ bgcolor: '#fff4e5', color: '#ed6c02', fontWeight: 'bold' }} />
+                        ) : (
+                          <Chip size="small" label="Rotación Regular" sx={{ bgcolor: '#f0f0f0', color: '#555' }} />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={onClose} sx={{ color: '#666', textTransform: 'none', fontWeight: 'bold' }}>
+          Cerrar Vista
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 };
 
-// 2. Exportación a Excel (.xls limpio sin referencias académicas)
-export const exportarExcelAltaRotacion = (movimientos, fechaDesde, fechaHasta) => {
-  const ranking = procesarAltaRotacion(movimientos, fechaDesde, fechaHasta);
-  if (ranking.length === 0) {
-    alert('No se encontraron movimientos de salida en el período seleccionado.');
-    return;
-  }
-
-  const rangoTexto = (fechaDesde && fechaHasta)
-    ? `${fechaDesde} al ${fechaHasta}`
-    : (fechaDesde ? `Desde ${fechaDesde}` : (fechaHasta ? `Hasta ${fechaHasta}` : 'Todo el Histórico'));
-
-  const contenidoExcel = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <style>
-          .titulo { font-size: 16pt; font-weight: bold; color: #1E5631; }
-          .subtitulo { font-size: 12pt; font-weight: bold; color: #333333; }
-          .periodo { font-size: 10pt; color: #555555; font-style: italic; }
-          th { background-color: #1E5631; color: #ffffff; font-weight: bold; border: 1px solid #143d22; padding: 10px; font-size: 11pt; text-align: center; }
-          td { border: 1px solid #dcdcdc; padding: 8px; font-size: 10pt; }
-          .posicion { text-align: center; font-weight: bold; background-color: #f4fbf7; }
-          .total { text-align: center; font-weight: bold; color: #1E5631; font-size: 11pt; }
-          .rotacion-lider { color: #d32f2f; font-weight: bold; text-align: center; }
-          .rotacion-alta { color: #ed6c02; font-weight: bold; text-align: center; }
-          .rotacion-normal { color: #555555; text-align: center; }
-        </style>
-      </head>
-      <body>
-        <table>
-          <tr><td colspan="4" class="titulo">LIBRERÍA Y PAPELERÍA PAPELITOS</td></tr>
-          <tr><td colspan="4" class="subtitulo">Reporte de Productos con Mayor Demanda y Rotación</td></tr>
-          <tr><td colspan="4" class="periodo">Período auditado: ${rangoTexto}</td></tr>
-          <tr><td colspan="4"></td></tr>
-          <thead>
-            <tr>
-              <th>Ranking</th>
-              <th>Nombre del Producto</th>
-              <th>Total Salidas (Despachos)</th>
-              <th>Nivel de Demanda Estacional</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${ranking.map((item, idx) => `
-              <tr>
-                <td class="posicion">#${idx + 1}</td>
-                <td>${item.producto}</td>
-                <td class="total">${item.total_salidas}</td>
-                <td class="${idx === 0 ? 'rotacion-lider' : (idx < 3 ? 'rotacion-alta' : 'rotacion-normal')}">
-                  ${idx === 0 ? 'Líder en Demanda' : (idx < 3 ? 'Alta Rotación' : 'Rotación Regular')}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </body>
-    </html>
-  `;
-
-  const blob = new Blob([contenidoExcel], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `Alta_Rotacion_Papelitos_${fechaDesde || 'inicio'}_a_${fechaHasta || 'hoy'}.xls`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-// 3. Exportación a PDF / Impresión formal para la Empresa
-export const exportarPDFAltaRotacion = (movimientos, fechaDesde, fechaHasta) => {
-  const ranking = procesarAltaRotacion(movimientos, fechaDesde, fechaHasta);
-  if (ranking.length === 0) {
-    alert('No se encontraron movimientos de salida en el período seleccionado.');
-    return;
-  }
-
-  const rangoTexto = (fechaDesde && fechaHasta)
-    ? `${fechaDesde} hasta ${fechaHasta}`
-    : (fechaDesde ? `Desde ${fechaDesde}` : (fechaHasta ? `Hasta ${fechaHasta}` : 'Todo el Histórico'));
-
-  const ventana = window.open('', '', 'width=950,height=750');
-  ventana.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Reporte de Productos de Alta Rotación - Librería Papelitos</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; color: #222; }
-          .header-reporte { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1E5631; padding-bottom: 15px; margin-bottom: 20px; }
-          .header-info h1 { margin: 0; color: #1E5631; font-size: 24px; text-transform: uppercase; letter-spacing: 0.5px; }
-          .header-info p { margin: 4px 0 0 0; color: #444; font-size: 13px; }
-          .logo-empresa { width: 140px; height: auto; object-fit: contain; }
-          .banner-resumen { background: #f0f7f2; border-left: 5px solid #1E5631; padding: 12px 18px; border-radius: 4px; margin-bottom: 25px; display: flex; justify-content: space-between; font-size: 13px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          thead tr { background-color: #1E5631; color: #ffffff; }
-          th { padding: 12px 10px; text-align: left; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
-          td { padding: 10px; border-bottom: 1px solid #e0e0e0; font-size: 13px; }
-          tbody tr:nth-child(even) { background-color: #fdfdfd; }
-          tbody tr:hover { background-color: #f4fbf7; }
-          .posicion { font-weight: bold; text-align: center; width: 60px; color: #1E5631; }
-          .total { text-align: center; font-weight: bold; font-size: 14px; width: 150px; }
-          .badge-lider { background: #fde8e8; color: #d32f2f; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 11px; display: inline-block; }
-          .badge-alto { background: #fff4e5; color: #ed6c02; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 11px; display: inline-block; }
-          .badge-normal { background: #f5f5f5; color: #555; padding: 4px 10px; border-radius: 12px; font-size: 11px; display: inline-block; }
-          .footer { margin-top: 35px; text-align: right; font-size: 11px; color: #888; border-top: 1px solid #e0e0e0; padding-top: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="header-reporte">
-          <div class="header-info">
-            <h1>Librería y Papelería Papelitos</h1>
-            <p><strong>Reporte Analítico:</strong> Productos con Mayor Demanda y Rotación</p>
-            <p>Sistema de Control y Gestión de Inventarios</p>
-          </div>
-          <img src="/logo.png" alt="Logo Papelitos" class="logo-empresa" onerror="this.src='/src/assets/logo.png';" />
-        </div>
-
-        <div class="banner-resumen">
-          <div><strong>Período Auditado:</strong> ${rangoTexto}</div>
-          <div><strong>Total de Artículos Evaluados:</strong> ${ranking.length}</div>
-          <div><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString('es-SV')}</div>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th style="text-align: center;">Ranking</th>
-              <th>Nombre del Producto</th>
-              <th style="text-align: center;">Total Unidades Despachadas</th>
-              <th style="text-align: center;">Comportamiento de Demanda</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${ranking.map((item, idx) => `
-              <tr>
-                <td class="posicion">#${idx + 1}</td>
-                <td style="font-weight: 600;">${item.producto}</td>
-                <td class="total">${item.total_salidas}</td>
-                <td style="text-align: center;">
-                  ${idx === 0 ? '<span class="badge-lider">★ Producto Líder</span>' : (idx < 3 ? '<span class="badge-alto">Alta Demanda</span>' : '<span class="badge-normal">Rotación Regular</span>')}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-
-        <div class="footer">
-          Generado automáticamente por el Módulo de Control de Inventario • Librería Papelitos
-        </div>
-      </body>
-    </html>
-  `);
-  ventana.document.close();
-  ventana.focus();
-  setTimeout(() => {
-    ventana.print();
-  }, 500);
-};
+export default ReporteAltaRotacion;
