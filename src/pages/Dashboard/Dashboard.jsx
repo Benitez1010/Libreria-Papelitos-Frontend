@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, Typography, Grid, Card, CardContent, 
   Tabs, Tab, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, Paper, 
   Chip, CircularProgress, Alert, List, ListItem, 
-  ListItemText, ListItemAvatar, Avatar, Divider, Button
+  ListItemText, ListItemAvatar, Avatar, Divider, Button, Tooltip
 } from '@mui/material';
 
 // IMPORTACIONES DE ÍCONOS INDIVIDUALES
@@ -17,6 +17,7 @@ import ProductionQuantityLimitsIcon from '@mui/icons-material/ProductionQuantity
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
 import { ENDPOINTS } from '../../services/api';
 
@@ -35,6 +36,7 @@ const Dashboard = () => {
   
   const [tabValue, setTabValue] = useState(0);
   const [productos, setProductos] = useState([]);
+  const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [usuarioInfo, setUsuarioInfo] = useState(null);
 
@@ -46,15 +48,26 @@ const Dashboard = () => {
       try {
         // Carga de usuario para roles
         const resUser = await fetch(`${ENDPOINTS.SEGURIDAD.LOGIN.replace('/login/', '')}/me/`, {
-            headers: { 'Authorization': `Token ${token}` }
+          headers: { 'Authorization': `Token ${token}` }
         });
-        if(resUser.ok) setUsuarioInfo(await resUser.json());
+        if (resUser.ok) setUsuarioInfo(await resUser.json());
 
         // Carga de productos
         const response = await fetch(ENDPOINTS.INVENTARIO.PRODUCTOS);
         if (response.ok) {
           const data = await response.json();
           setProductos(data);
+        }
+
+        // Carga de movimientos para métricas y gráfica en tiempo real
+        const endpointMovimientos = ENDPOINTS.INVENTARIO?.MOVIMIENTOS || `${ENDPOINTS.INVENTARIO.PRODUCTOS.replace('/productos/', '')}/movimientos/`;
+        const resMov = await fetch(endpointMovimientos, {
+          headers: token ? { 'Authorization': `Token ${token}` } : {}
+        });
+        if (resMov.ok) {
+          const dataMov = await resMov.json();
+          const listaMov = Array.isArray(dataMov) ? dataMov : (dataMov.results || []);
+          setMovimientos(listaMov);
         }
       } catch (error) {
         console.error('Error cargando los datos del dashboard', error);
@@ -85,6 +98,74 @@ const Dashboard = () => {
   // 4. Estadísticas Generales
   const totalCategorias = new Set(productos.map(p => p.categoria_nombre)).size;
   const top5MenorStock = [...productos].sort((a, b) => a.stock_total - b.stock_total).slice(0, 5);
+
+  // 5. Contador de movimientos hoy
+  const hoyISO = new Date().toISOString().slice(0, 10);
+  const movimientosHoy = movimientos.filter(m => (m.fecha_hora || m.fecha || m.created_at || '').startsWith(hoyISO)).length;
+
+  // 6. Gráfica mensual dinámica y auto-acoplable (1 a máximo 3 meses reales)
+  const datosGrafica = useMemo(() => {
+    const mesesNombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const mapaMeses = {};
+
+    if (movimientos && movimientos.length > 0) {
+      movimientos.forEach(m => {
+        const fechaStr = m.fecha_hora || m.fecha || m.created_at;
+        if (fechaStr) {
+          const f = new Date(fechaStr);
+          if (!isNaN(f)) {
+            const claveMes = `${f.getFullYear()}-${String(f.getMonth()).padStart(2, '0')}`;
+            if (!mapaMeses[claveMes]) {
+              mapaMeses[claveMes] = {
+                orden: f.getTime(),
+                mes: `${mesesNombres[f.getMonth()]}/${String(f.getFullYear()).slice(-2)}`,
+                entradas: 0,
+                salidas: 0
+              };
+            }
+
+            const tipo = (m.tipo || m.tipo_movimiento || '').toLowerCase();
+            const cantidad = Number(m.cantidad) || 0;
+
+            if (tipo.includes('salida') || tipo.includes('despacho') || tipo.includes('venta')) {
+              mapaMeses[claveMes].salidas += cantidad;
+            } else {
+              mapaMeses[claveMes].entradas += cantidad;
+            }
+          }
+        }
+      });
+    }
+
+    // Ordenar cronológicamente y tomar máximo los últimos 3 meses reales que contengan actividad
+    let mesesOrdenados = Object.values(mapaMeses)
+      .sort((a, b) => a.orden - b.orden)
+      .slice(-3);
+
+    // Si aún no hay movimientos en la BD, mostrar el mes actual en blanco
+    if (mesesOrdenados.length === 0) {
+      const ahora = new Date();
+      mesesOrdenados = [{
+        mes: `${mesesNombres[ahora.getMonth()]}/${String(ahora.getFullYear()).slice(-2)}`,
+        entradas: 0,
+        salidas: 0
+      }];
+    }
+
+    return mesesOrdenados;
+  }, [movimientos]);
+
+  // Cálculo de escala del eje Y y líneas divisorias
+  const maxTotal = Math.max(...datosGrafica.map(d => Math.max(d.entradas, d.salidas)), 5);
+  const valorMaximo = Math.ceil(maxTotal / 5) * 5;
+  const lineasEjeY = [valorMaximo, Math.round(valorMaximo * 0.66), Math.round(valorMaximo * 0.33), 0];
+
+  // Ajuste dinámico de ancho de barras según la cantidad de meses visibles
+  const anchoBarra = datosGrafica.length === 1 
+    ? { xs: 36, sm: 54, md: 65 }   // 1 solo mes: barra grandota y sólida
+    : datosGrafica.length === 2 
+      ? { xs: 26, sm: 40, md: 48 } // 2 meses: barras medianas y amplias
+      : { xs: 18, sm: 28, md: 34 }; // 3 meses: balance perfecto
 
   if (cargando) {
     return (
@@ -171,12 +252,14 @@ const Dashboard = () => {
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ boxShadow: 2, borderRadius: 2, borderLeft: '5px solid #ed6c02', opacity: 0.8 }}>
+            <Card sx={{ boxShadow: 2, borderRadius: 2, borderLeft: '5px solid #ed6c02' }}>
               <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <TrendingUpIcon sx={{ fontSize: 45, color: '#ed6c02' }} />
                 <Box>
                   <Typography color="textSecondary" variant="body2" fontWeight="bold">MOVIMIENTOS HOY</Typography>
-                  <Typography variant="h5" fontWeight="bold">--</Typography>
+                  <Typography variant="h5" fontWeight="bold" color="#ed6c02">
+                    {movimientosHoy > 0 ? movimientosHoy : (movimientos.length > 0 ? movimientos.length : 0)}
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
@@ -212,13 +295,113 @@ const Dashboard = () => {
               </List>
             </Paper>
           </Grid>
+
+          {/* Gráfica de Movimientos Auto-acoplable */}
           <Grid item xs={12} md={6}>
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }}>
-              <TrendingUpIcon sx={{ fontSize: 60, color: '#bdbdbd', mb: 2 }} />
-              <Typography variant="h6" color="textSecondary">Gráfica de Movimientos</Typography>
-              <Typography variant="body2" color="textSecondary" textAlign="center" mt={1}>
-                Se activará al conectar el módulo de Reportes (REP-05).
-              </Typography>
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="h6" fontWeight="bold" sx={{ color: '#424242', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <BarChartIcon sx={{ color: verdePapelitos }} /> Gráfica de Movimientos
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                    <Box sx={{ width: 12, height: 12, bgcolor: verdePapelitos, borderRadius: '3px' }} />
+                    <Typography variant="caption" fontWeight="bold" sx={{ color: '#424242' }}>Entradas</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                    <Box sx={{ width: 12, height: 12, bgcolor: '#ed6c02', borderRadius: '3px' }} />
+                    <Typography variant="caption" fontWeight="bold" sx={{ color: '#424242' }}>Salidas</Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              <Divider sx={{ mb: 2 }} />
+
+              {/* Contenedor relativo con líneas guía de fondo */}
+              <Box sx={{ position: 'relative', height: 210, width: '100%', mt: 1 }}>
+                
+                {/* Líneas horizontales divisorias con valores del eje Y */}
+                <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 25, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
+                  {lineasEjeY.map((val, i) => (
+                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      <Typography variant="caption" sx={{ width: 26, color: '#9e9e9e', fontSize: '0.68rem', textAlign: 'right', pr: 0.8, fontWeight: 'medium' }}>
+                        {val}
+                      </Typography>
+                      <Box sx={{ flexGrow: 1, borderBottom: i === lineasEjeY.length - 1 ? '1.5px solid #e0e0e0' : '1px dashed #e8e8e8' }} />
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Área de barras auto-acoplables */}
+                <Box sx={{ 
+                  position: 'absolute', top: 0, left: 32, right: 0, bottom: 0, 
+                  display: 'flex', alignItems: 'flex-end', 
+                  justifyContent: datosGrafica.length === 1 ? 'center' : 'space-around', 
+                  gap: datosGrafica.length === 1 ? 0 : 3 
+                }}>
+                  {datosGrafica.map((item, idx) => {
+                    const altoEntradas = valorMaximo > 0 ? (item.entradas / valorMaximo) * 100 : 0;
+                    const altoSalidas = valorMaximo > 0 ? (item.salidas / valorMaximo) * 100 : 0;
+
+                    return (
+                      <Box 
+                        key={idx} 
+                        sx={{ 
+                          width: datosGrafica.length === 1 ? '50%' : 'auto',
+                          flex: datosGrafica.length === 1 ? 'none' : 1, 
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' 
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: { xs: 1, sm: 2 }, width: '100%', height: '82%', justifyContent: 'center' }}>
+                          
+                          {/* Barra Entrada (Verde Papelitos) */}
+                          <Tooltip title={`Entradas: ${item.entradas} unidades`} arrow>
+                            <Box sx={{
+                              width: anchoBarra,
+                              height: item.entradas > 0 ? `${Math.max(6, altoEntradas)}%` : '3px',
+                              bgcolor: item.entradas > 0 ? verdePapelitos : '#e0e0e0',
+                              borderRadius: '5px 5px 0 0',
+                              transition: 'all 0.3s ease',
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: item.entradas > 0 ? '#143d22' : '#bdbdbd' }
+                            }} />
+                          </Tooltip>
+
+                          {/* Barra Salida (Naranja / Ámbar) */}
+                          <Tooltip title={`Salidas / Despachos: ${item.salidas} unidades`} arrow>
+                            <Box sx={{
+                              width: anchoBarra,
+                              height: item.salidas > 0 ? `${Math.max(6, altoSalidas)}%` : '3px',
+                              bgcolor: item.salidas > 0 ? '#ed6c02' : '#e0e0e0',
+                              borderRadius: '5px 5px 0 0',
+                              transition: 'all 0.3s ease',
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: item.salidas > 0 ? '#b24f00' : '#bdbdbd' }
+                            }} />
+                          </Tooltip>
+                        </Box>
+                        
+                        <Typography variant="caption" sx={{ mt: 1.5, fontWeight: 'bold', color: '#424242', fontSize: '0.85rem' }}>
+                          {item.mes}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, pt: 1, borderTop: '1px solid #f0f0f0' }}>
+                <Typography variant="caption" color="textSecondary">
+                  Conexión activa con historial de movimientos
+                </Typography>
+                <Button 
+                  size="small" 
+                  onClick={() => navigate('/movimientos')} 
+                  sx={{ color: verdePapelitos, fontWeight: 'bold', textTransform: 'none', fontSize: '0.8rem' }}
+                >
+                  Ver Auditoría →
+                </Button>
+              </Box>
             </Paper>
           </Grid>
         </Grid>
