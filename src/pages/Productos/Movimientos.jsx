@@ -25,7 +25,11 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { ENDPOINTS } from '../../services/api';
+
+// Modal de la historia REP-03 modularizado en la carpeta Reportes
+import ReporteAltaRotacion from '../Reportes/ReporteAltaRotacion';
 
 const Movimientos = () => {
   const verdePapelitos = '#1E5631';
@@ -40,6 +44,9 @@ const Movimientos = () => {
   const [filtroTipo, setFiltroTipo] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+
+  // Control para abrir/cerrar el modal de alta rotación
+  const [modalAbierto, setModalAbierto] = useState(false);
 
   const cargarHistorial = async () => {
     setCargando(true);
@@ -60,7 +67,7 @@ const Movimientos = () => {
       } else {
         setError(`Error del servidor (${res.status}): No se pudo obtener el historial.`);
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión con el servidor backend.');
     } finally {
       setCargando(false);
@@ -116,9 +123,9 @@ const Movimientos = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
         <SyncAltIcon sx={{ fontSize: 36, color: verdePapelitos }} />
         <Typography 
-        variant="h4" 
-        fontWeight="bold" 
-        sx={{ color: '#222222', letterSpacing: '-0.5px' }}>
+          variant="h4" 
+          fontWeight="bold" 
+          sx={{ color: '#222222', letterSpacing: '-0.5px' }}>
           Historial de Movimientos
         </Typography>
       </Box>
@@ -134,7 +141,7 @@ const Movimientos = () => {
           gap: 2
         }}
       >
-        {/* Lado Izquierdo: Buscador + Tipo + Recargar */}
+        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Botón Reporte */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             size="small"
@@ -193,6 +200,7 @@ const Movimientos = () => {
             </Select>
           </FormControl>
 
+          {/* Botón Recargar */}
           <Button
             onClick={cargarHistorial}
             variant="outlined"
@@ -210,6 +218,26 @@ const Movimientos = () => {
             }}
           >
             Recargar
+          </Button>
+
+          {/* Botón de REP-03: Abre el modal del reporte de demanda */}
+          <Button
+            onClick={() => setModalAbierto(true)}
+            variant="contained"
+            startIcon={<TrendingUpIcon />}
+            sx={{
+              backgroundColor: verdePapelitos,
+              color: '#fff',
+              textTransform: 'none',
+              borderRadius: '8px',
+              height: '40px',
+              px: 2,
+              fontWeight: 'bold',
+              boxShadow: '0 2px 4px rgba(30,86,49,0.2)',
+              '&:hover': { backgroundColor: '#143c22' }
+            }}
+          >
+            Ver Más Vendidos
           </Button>
         </Box>
 
@@ -360,6 +388,13 @@ const Movimientos = () => {
           </Table>
         </TableContainer>
       )}
+
+      {/* 4. Llamada al Modal Modularizado (Reportes/ReporteAltaRotacion.jsx) */}
+      <ReporteAltaRotacion
+        open={modalAbierto}
+        onClose={() => setModalAbierto(false)}
+        movimientos={movimientos}
+      />
     </Box>
   );
 };

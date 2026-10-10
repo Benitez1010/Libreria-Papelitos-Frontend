@@ -306,7 +306,6 @@ const ListaProductos = () => {
           <Table>
             <TableHead sx={{ backgroundColor: verdePapelitos }}>
               <TableRow>
-                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>NOMBRE DEL PRODUCTO</TableCell>
                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>CATEGORÍA</TableCell>
                 <TableCell align="center" sx={{ color: 'white', fontWeight: 'bold' }}>BODEGA</TableCell>
@@ -320,7 +319,6 @@ const ListaProductos = () => {
               {productosPaginados.length > 0 ? (
                 productosPaginados.map((producto) => (
                   <TableRow key={producto.id} hover>
-                    <TableCell sx={{ fontWeight: 'bold' }}>#{producto.id}</TableCell>
                     <TableCell>{producto.nombre}</TableCell>
                     <TableCell>{producto.categoria_nombre || producto.categoria}</TableCell>
                     
