@@ -103,9 +103,15 @@ const Dashboard = () => {
   const hoyISO = new Date().toISOString().slice(0, 10);
   const movimientosHoy = movimientos.filter(m => (m.fecha_hora || m.fecha || m.created_at || '').startsWith(hoyISO)).length;
 
+  const formatearEtiquetaMes = (fecha) => {
+    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    const mes = meses[fecha.getMonth()];
+    const anio = fecha.getFullYear();
+    return `${mes} ${anio}`;
+  };
+
   // 6. Gráfica mensual dinámica y auto-acoplable (1 a máximo 3 meses reales)
   const datosGrafica = useMemo(() => {
-    const mesesNombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const mapaMeses = {};
 
     if (movimientos && movimientos.length > 0) {
@@ -118,7 +124,7 @@ const Dashboard = () => {
             if (!mapaMeses[claveMes]) {
               mapaMeses[claveMes] = {
                 orden: f.getTime(),
-                mes: `${mesesNombres[f.getMonth()]}/${String(f.getFullYear()).slice(-2)}`,
+                mes: formatearEtiquetaMes(f),
                 entradas: 0,
                 salidas: 0
               };
@@ -146,7 +152,7 @@ const Dashboard = () => {
     if (mesesOrdenados.length === 0) {
       const ahora = new Date();
       mesesOrdenados = [{
-        mes: `${mesesNombres[ahora.getMonth()]}/${String(ahora.getFullYear()).slice(-2)}`,
+        mes: formatearEtiquetaMes(ahora),
         entradas: 0,
         salidas: 0
       }];
@@ -223,7 +229,7 @@ const Dashboard = () => {
               <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <InventoryIcon sx={{ fontSize: 45, color: verdePapelitos }} />
                 <Box>
-                  <Typography color="textSecondary" variant="body2" fontWeight="bold">TOTAL PRODUCTOS</Typography>
+                  <Typography co  lor="textSecondary" variant="body2" fontWeight="bold">TOTAL PRODUCTOS</Typography>
                   <Typography variant="h5" fontWeight="bold">{productos.length}</Typography>
                 </Box>
               </CardContent>
