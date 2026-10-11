@@ -331,25 +331,34 @@ const Movimientos = () => {
         </Alert>
       )}
 
-      {/* 3. Tabla de Movimientos */}
+{/* 3. Tabla de Movimientos con Scroll Horizontal */}
       {cargando ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
           <CircularProgress sx={{ color: verdePapelitos }} />
         </Box>
       ) : (
-        <TableContainer component={Paper} elevation={3} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
-          <Table>
+        <TableContainer 
+          component={Paper} 
+          elevation={3} 
+          sx={{ 
+            borderRadius: '12px', 
+            width: '100%',
+            overflowX: 'auto', // Habilita el scroll hacia los lados
+            boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+          }}
+        >
+          <Table sx={{ minWidth: 1050 }}> {/* Asegura espacio suficiente para todas las columnas */}
             <TableHead sx={{ bgcolor: verdePapelitos }}>
               <TableRow>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>Nº</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>FECHA Y HORA</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>PRODUCTO</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>TIPO</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }} align="right">CANTIDAD</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>ORIGEN</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>DESTINO</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>RESPONSABLE</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>JUSTIFICACIÓN</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>Nº</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>FECHA Y HORA</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>PRODUCTO</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>TIPO</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }} align="right">CANTIDAD</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>ORIGEN</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>DESTINO</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>RESPONSABLE</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>JUSTIFICACIÓN</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -362,23 +371,33 @@ const Movimientos = () => {
               ) : (
                 listaFiltrada.map((mov, index) => (
                   <TableRow key={mov.id || index} hover>
-                    <TableCell sx={{ color: '#555' }}>{index + 1}</TableCell>
+                    <TableCell sx={{ color: '#555', whiteSpace: 'nowrap' }}>{index + 1}</TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap', color: '#444' }}>
                       {new Date(mov.fecha_hora).toLocaleString('es-SV')}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#222' }}>{mov.producto_nombre}</TableCell>
-                    <TableCell>{getTipoChip(mov.tipo, mov.tipo_display)}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', color: '#222' }}>{mov.cantidad}</TableCell>
-                    <TableCell sx={{ color: '#555' }}>{mov.origen_display || mov.origen}</TableCell>
-                    <TableCell sx={{ color: '#555' }}>{mov.destino_display || mov.destino}</TableCell>
-                    <TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#222', whiteSpace: 'nowrap' }}>
+                      {mov.producto_nombre}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      {getTipoChip(mov.tipo, mov.tipo_display)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold', color: '#222', whiteSpace: 'nowrap' }}>
+                      {mov.cantidad}
+                    </TableCell>
+                    <TableCell sx={{ color: '#555', whiteSpace: 'nowrap' }}>
+                      {mov.origen_display || mov.origen}
+                    </TableCell>
+                    <TableCell sx={{ color: '#555', whiteSpace: 'nowrap' }}>
+                      {mov.destino_display || mov.destino}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
                       <Chip
                         label={mov.responsable || 'Sin asignar'}
                         size="small"
                         sx={{ bgcolor: '#EAF4EC', color: verdePapelitos, fontWeight: 'bold' }}
                       />
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#666' }}>
+                    <TableCell sx={{ minWidth: 200, maxWidth: 300, color: '#666' }}>
                       {mov.justificacion || '—'}
                     </TableCell>
                   </TableRow>
@@ -388,7 +407,6 @@ const Movimientos = () => {
           </Table>
         </TableContainer>
       )}
-
       {/* 4. Llamada al Modal Modularizado (Reportes/ReporteAltaRotacion.jsx) */}
       <ReporteAltaRotacion
         open={modalAbierto}
