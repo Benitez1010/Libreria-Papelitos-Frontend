@@ -29,5 +29,11 @@ export const ENDPOINTS = {
   ALERTAS: {
     DESTINATARIOS: `${BASE_URL}/destinatarios/`,
     HISTORIAL: `${BASE_URL}/historial-alertas/`,
+  },
+
+  // Módulo de Reportes (NUEVO)
+  REPORTES: {
+    EXISTENCIAS_UBICACION: `${BASE_URL}/reportes/existencias-ubicacion/`,
+    SIN_MOVIMIENTO: `${BASE_URL}/reportes/sin-movimiento/`,
   }
 }

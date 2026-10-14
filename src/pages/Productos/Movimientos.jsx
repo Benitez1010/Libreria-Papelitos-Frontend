@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -26,14 +27,18 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { ENDPOINTS } from '../../services/api';
 
 // Modal de la historia REP-03 modularizado en la carpeta Reportes
 import ReporteAltaRotacion from '../Reportes/ReporteAltaRotacion';
+import ProductosSinMovimiento from '../Reportes/ProductosSinMovimiento'
 
 const Movimientos = () => {
   const verdePapelitos = '#1E5631';
   const azulPapelitos = '#1976d2';
+
+  const navigate = useNavigate();
 
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -47,6 +52,7 @@ const Movimientos = () => {
 
   // Control para abrir/cerrar el modal de alta rotación
   const [modalAbierto, setModalAbierto] = useState(false);
+const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false);
 
   const cargarHistorial = async () => {
     setCargando(true);
@@ -239,6 +245,24 @@ const Movimientos = () => {
           >
             Ver Más Vendidos
           </Button>
+          <Button
+            onClick={() => setModalSinMovimientoAbierto(true)}
+            variant="contained"
+            startIcon={<TrendingDownIcon />}
+            sx={{
+              backgroundColor: '#ed6c02',
+              color: '#fff',
+              textTransform: 'none',
+              borderRadius: '8px',
+              height: '40px',
+              px: 2,
+              fontWeight: 'bold',
+              boxShadow: '0 2px 4px rgba(237,108,2,0.2)',
+              '&:hover': { backgroundColor: '#e65100' }
+            }}
+          >
+            Sin Movimientos
+          </Button>
         </Box>
 
         {/* Lado Derecho: Filtro de Fechas profesional sin colisión de bordes */}
@@ -347,7 +371,7 @@ const Movimientos = () => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
           }}
         >
-          <Table sx={{ minWidth: 1050 }}> {/* Asegura espacio suficiente para todas las columnas */}
+          <Table sx={{ minWidth: 1050 }}>
             <TableHead sx={{ bgcolor: verdePapelitos }}>
               <TableRow>
                 <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>Nº</TableCell>
@@ -412,6 +436,11 @@ const Movimientos = () => {
         open={modalAbierto}
         onClose={() => setModalAbierto(false)}
         movimientos={movimientos}
+      />
+
+      <ProductosSinMovimiento
+        open={modalSinMovimientoAbierto}
+        onClose={() => setModalSinMovimientoAbierto(false)}
       />
     </Box>
   );
