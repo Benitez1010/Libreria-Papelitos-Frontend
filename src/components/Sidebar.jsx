@@ -11,6 +11,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { ENDPOINTS } from '../services/api';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 const SidebarContent = ({ openAdmin, setOpenAdmin, openConfig, setOpenConfig, onLogout, usuarioInfo, desktopOpen, setDesktopOpen }) => {
   
@@ -135,6 +136,9 @@ const SidebarContent = ({ openAdmin, setOpenAdmin, openConfig, setOpenConfig, on
                   <NavItem to="" icon={<Storefront sx={{ color: 'white' }} />} text="Área de almacenaje" isSubmenu />
                   <NavItem to="/movimientos" icon={<SyncAlt sx={{ color: 'white' }} />} text="Movimientos" isSubmenu />
                   <NavItem to="/control-inventario" icon={<Assessment sx={{ color: 'white' }} />} text="Control de Inventario" isSubmenu />
+                  {esAdmin && (
+                    <NavItem to="/stock-critico" icon={<WarningAmberIcon sx={{ color: 'white' }} />} text="Stock Crítico" isSubmenu />
+                  )}
                 </List>
               </Collapse>
             </>

@@ -1,4 +1,4 @@
-// 1. Limpiamos la URL que viene de las variables de entorno (quitamos la barra final si existe)
+// 1. Limpiamos la URL que viene de las variables de entorno
 const RAW_URL = import.meta.env.VITE_API_URL || "";
 const DOMAIN_URL = RAW_URL.endsWith("/") ? RAW_URL.slice(0, -1) : RAW_URL;
 
@@ -31,9 +31,10 @@ export const ENDPOINTS = {
     HISTORIAL: `${BASE_URL}/historial-alertas/`,
   },
 
-  // Módulo de Reportes (NUEVO)
+  // Módulo de Reportes
   REPORTES: {
     EXISTENCIAS_UBICACION: `${BASE_URL}/reportes/existencias-ubicacion/`,
     SIN_MOVIMIENTO: `${BASE_URL}/reportes/sin-movimiento/`,
+    STOCK_CRITICO: `${BASE_URL}/reportes/stock-critico/`,
   }
 }
