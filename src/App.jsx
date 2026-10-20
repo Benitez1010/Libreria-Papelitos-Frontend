@@ -20,6 +20,7 @@ import HistorialAlertas from './pages/Configuracion/HistorialAlertas'; // Import
 import BitacoraBloqueo from './pages/Configuracion/BitacoraBloqueo'; // Importa el componente BitacoraBloqueo
 import Movimientos from './pages/Productos/Movimientos'; // Importa el componente Movimientos
 import ReporteExistencias from './pages/Reportes/ReporteExistencias'; // Importa el componente ReporteExistencias
+import ReporteStockCritico from './pages/Reportes/ReporteStockCritico';
 
 function App() {
   return (
@@ -114,6 +115,8 @@ function App() {
           <Route path="movimientos" element={<Movimientos />} />
 
           <Route path="control-inventario" element={<ReporteExistencias />} />
+
+          <Route path="stock-critico" element={<ReporteStockCritico />} />
           
         </Route>
       </Route>
