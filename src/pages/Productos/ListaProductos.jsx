@@ -142,8 +142,10 @@ const ListaProductos = () => {
       });
 
       if (response.ok) {
+        // Leemos la respuesta de Django para saber si fue borrado o descontinuado
+        const data = await response.json(); 
         setProductos((prev) => prev.filter((p) => p.id !== productoAEliminar.id));
-        setAlertaGlobal({ tipo: 'success', mensaje: 'Producto eliminado correctamente del inventario.' });
+        setAlertaGlobal({ tipo: 'success', mensaje: data.message || 'Producto eliminado correctamente.' });
       } else {
         const data = await response.json().catch(() => ({}));
         setAlertaGlobal({
