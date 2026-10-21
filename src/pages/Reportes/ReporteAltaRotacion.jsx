@@ -27,6 +27,10 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import StarIcon from '@mui/icons-material/Star';
 import CloseIcon from '@mui/icons-material/Close';
 
+// Herramientas PDF
+import BotonExportar from '../../components/BotonExportar';
+import { generarPDF } from '../../utils/pdfExport';
+
 const ReporteAltaRotacion = ({ open, onClose, movimientos = [] }) => {
   const verdePapelitos = '#1E5631';
 
@@ -89,6 +93,19 @@ const ReporteAltaRotacion = ({ open, onClose, movimientos = [] }) => {
     procesarAltaRotacion(fechaDesde, fechaHasta);
   };
 
+  // --- LÓGICA DE EXPORTACIÓN A PDF ---
+  const handleExportarPDF = () => {
+    const columnas = [
+      { header: 'Ranking', field: 'ranking' },
+      { header: 'Producto', field: 'producto' },
+      { header: 'Unidades Despachadas', field: 'total_salidas' }
+    ];
+
+    // Incluimos las fechas en el título para que el PDF tenga contexto
+    const titulo = `Reporte de Alta Rotación (${fechaDesde} al ${fechaHasta})`;
+    generarPDF(titulo, columnas, datosRanking);
+  };
+
   return (
     <Dialog
       open={open}
@@ -138,7 +155,6 @@ const ReporteAltaRotacion = ({ open, onClose, movimientos = [] }) => {
                 value={fechaHasta}
                 onChange={(e) => setFechaHasta(e.target.value)}
                 InputLabelProps={{ shrink: true }}
-                // Bloquea en el selector del calendario los días anteriores a 'Desde'
                 inputProps={{
                   min: fechaDesde || undefined
                 }}
@@ -233,7 +249,11 @@ const ReporteAltaRotacion = ({ open, onClose, movimientos = [] }) => {
         )}
       </DialogContent>
 
-      <DialogActions sx={{ p: 2 }}>
+      <DialogActions sx={{ p: 2, display: 'flex', justifyContent: 'space-between' }}>
+        <BotonExportar 
+          onExportPDF={handleExportarPDF} 
+          disabled={datosRanking.length === 0} 
+        />
         <Button onClick={onClose} sx={{ color: '#666', textTransform: 'none', fontWeight: 'bold' }}>
           Cerrar Vista
         </Button>

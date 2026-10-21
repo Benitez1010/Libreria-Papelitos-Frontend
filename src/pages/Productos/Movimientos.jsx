@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -26,9 +25,11 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { ENDPOINTS } from '../../services/api';
+
+// Herramientas de PDF
+import BotonExportar from '../../components/BotonExportar';
+import { generarPDF } from '../../utils/pdfExport';
 
 // Modal de la historia REP-03 modularizado en la carpeta Reportes
 import ReporteAltaRotacion from '../Reportes/ReporteAltaRotacion';
@@ -37,8 +38,6 @@ import ProductosSinMovimiento from '../Reportes/ProductosSinMovimiento'
 const Movimientos = () => {
   const verdePapelitos = '#1E5631';
   const azulPapelitos = '#1976d2';
-
-  const navigate = useNavigate();
 
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -52,7 +51,7 @@ const Movimientos = () => {
 
   // Control para abrir/cerrar el modal de alta rotación
   const [modalAbierto, setModalAbierto] = useState(false);
-const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false);
+  const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false);
 
   const cargarHistorial = async () => {
     setCargando(true);
@@ -73,7 +72,7 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
       } else {
         setError(`Error del servidor (${res.status}): No se pudo obtener el historial.`);
       }
-    } catch {
+    } catch (err) {
       setError('Error de conexión con el servidor backend.');
     } finally {
       setCargando(false);
@@ -123,15 +122,40 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
     return coincideTexto && coincideTipo && coincideDesde && coincideHasta;
   });
 
+  // --- LÓGICA DE EXPORTACIÓN A PDF ---
+  const handleExportarPDF = () => {
+    const columnas = [
+      { header: 'Fecha y Hora', field: 'fecha_hora_formateada' },
+      { header: 'Producto', field: 'producto_nombre' },
+      { header: 'Tipo', field: 'tipo_display' },
+      { header: 'Cant.', field: 'cantidad' },
+      { header: 'Origen', field: 'origen_display' },
+      { header: 'Destino', field: 'destino_display' },
+      { header: 'Responsable', field: 'responsable' }
+    ];
+
+    // Mapeamos listaFiltrada para asegurar que los datos estén limpios para el PDF
+    const datosParaPDF = listaFiltrada.map(mov => ({
+      ...mov,
+      fecha_hora_formateada: new Date(mov.fecha_hora).toLocaleString('es-SV'),
+      tipo_display: mov.tipo_display || mov.tipo,
+      origen_display: mov.origen_display || mov.origen,
+      destino_display: mov.destino_display || mov.destino,
+      responsable: mov.responsable || 'Sin asignar'
+    }));
+
+    generarPDF('Historial de Movimientos de Inventario', columnas, datosParaPDF);
+  };
+
   return (
     <Box sx={{ p: 4, fontFamily: '"Inter", sans-serif' }}>
       {/* 1. Título Limpio */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
         <SyncAltIcon sx={{ fontSize: 36, color: verdePapelitos }} />
         <Typography 
-          variant="h4" 
-          fontWeight="bold" 
-          sx={{ color: '#222222', letterSpacing: '-0.5px' }}>
+        variant="h4" 
+        fontWeight="bold" 
+        sx={{ color: '#222222', letterSpacing: '-0.5px' }}>
           Historial de Movimientos
         </Typography>
       </Box>
@@ -147,7 +171,7 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
           gap: 2
         }}
       >
-        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Botón Reporte */}
+        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Exportar + Botón Reporte */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             size="small"
@@ -206,7 +230,6 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
             </Select>
           </FormControl>
 
-          {/* Botón Recargar */}
           <Button
             onClick={cargarHistorial}
             variant="outlined"
@@ -225,6 +248,12 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
           >
             Recargar
           </Button>
+
+          {/* Botón Exportar PDF */}
+          <BotonExportar 
+            onExportPDF={handleExportarPDF} 
+            disabled={listaFiltrada.length === 0 || cargando} 
+          />
 
           {/* Botón de REP-03: Abre el modal del reporte de demanda */}
           <Button
@@ -355,34 +384,25 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
         </Alert>
       )}
 
-{/* 3. Tabla de Movimientos con Scroll Horizontal */}
+      {/* 3. Tabla de Movimientos */}
       {cargando ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
           <CircularProgress sx={{ color: verdePapelitos }} />
         </Box>
       ) : (
-        <TableContainer 
-          component={Paper} 
-          elevation={3} 
-          sx={{ 
-            borderRadius: '12px', 
-            width: '100%',
-            overflowX: 'auto', // Habilita el scroll hacia los lados
-            boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
-          }}
-        >
-          <Table sx={{ minWidth: 1050 }}>
+        <TableContainer component={Paper} elevation={3} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
+          <Table>
             <TableHead sx={{ bgcolor: verdePapelitos }}>
               <TableRow>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>Nº</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>FECHA Y HORA</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>PRODUCTO</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>TIPO</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }} align="right">CANTIDAD</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>ORIGEN</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>DESTINO</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>RESPONSABLE</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>JUSTIFICACIÓN</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>Nº</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>FECHA Y HORA</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>PRODUCTO</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>TIPO</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }} align="right">CANTIDAD</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>ORIGEN</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>DESTINO</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>RESPONSABLE</TableCell>
+                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>JUSTIFICACIÓN</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -395,33 +415,23 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
               ) : (
                 listaFiltrada.map((mov, index) => (
                   <TableRow key={mov.id || index} hover>
-                    <TableCell sx={{ color: '#555', whiteSpace: 'nowrap' }}>{index + 1}</TableCell>
+                    <TableCell sx={{ color: '#555' }}>{index + 1}</TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap', color: '#444' }}>
                       {new Date(mov.fecha_hora).toLocaleString('es-SV')}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#222', whiteSpace: 'nowrap' }}>
-                      {mov.producto_nombre}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      {getTipoChip(mov.tipo, mov.tipo_display)}
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', color: '#222', whiteSpace: 'nowrap' }}>
-                      {mov.cantidad}
-                    </TableCell>
-                    <TableCell sx={{ color: '#555', whiteSpace: 'nowrap' }}>
-                      {mov.origen_display || mov.origen}
-                    </TableCell>
-                    <TableCell sx={{ color: '#555', whiteSpace: 'nowrap' }}>
-                      {mov.destino_display || mov.destino}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell sx={{ fontWeight: 600, color: '#222' }}>{mov.producto_nombre}</TableCell>
+                    <TableCell>{getTipoChip(mov.tipo, mov.tipo_display)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold', color: '#222' }}>{mov.cantidad}</TableCell>
+                    <TableCell sx={{ color: '#555' }}>{mov.origen_display || mov.origen}</TableCell>
+                    <TableCell sx={{ color: '#555' }}>{mov.destino_display || mov.destino}</TableCell>
+                    <TableCell>
                       <Chip
                         label={mov.responsable || 'Sin asignar'}
                         size="small"
                         sx={{ bgcolor: '#EAF4EC', color: verdePapelitos, fontWeight: 'bold' }}
                       />
                     </TableCell>
-                    <TableCell sx={{ minWidth: 200, maxWidth: 300, color: '#666' }}>
+                    <TableCell sx={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#666' }}>
                       {mov.justificacion || '—'}
                     </TableCell>
                   </TableRow>
@@ -431,17 +441,6 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
           </Table>
         </TableContainer>
       )}
-      {/* 4. Llamada al Modal Modularizado (Reportes/ReporteAltaRotacion.jsx) */}
-      <ReporteAltaRotacion
-        open={modalAbierto}
-        onClose={() => setModalAbierto(false)}
-        movimientos={movimientos}
-      />
-
-      <ProductosSinMovimiento
-        open={modalSinMovimientoAbierto}
-        onClose={() => setModalSinMovimientoAbierto(false)}
-      />
     </Box>
   );
 };

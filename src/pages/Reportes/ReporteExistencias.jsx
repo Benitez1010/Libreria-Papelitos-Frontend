@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Paper,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -20,6 +19,10 @@ import {
 } from '@mui/material';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import RefreshIcon from '@mui/icons-material/Refresh';
+
+// Herramientas PDF
+import BotonExportar from '../../components/BotonExportar';
+import { generarPDF } from '../../utils/pdfExport';
 
 export default function ReporteExistencias() {
   const verdePapelitos = '#1E5631';
@@ -79,6 +82,39 @@ export default function ReporteExistencias() {
   const totalVitrina = productos.reduce((sum, p) => sum + (p.stock_vitrina || 0), 0);
   const totalConsolidado = productos.reduce((sum, p) => sum + (p.total_consolidado || 0), 0);
 
+  // --- LÓGICA DE EXPORTACIÓN A PDF ---
+  const handleExportarPDF = () => {
+    const columnas = [
+      { header: 'ID', field: 'id' },
+      { header: 'Nombre del Producto', field: 'nombre' },
+      { header: 'Categoría', field: 'categoria_nombre' },
+      { header: 'Bodega', field: 'stock_bodega' },
+      { header: 'Vitrina', field: 'stock_vitrina' },
+      { header: 'Total', field: 'total_consolidado' }
+    ];
+
+    // Copiamos los productos y agregamos la fila de totales al final para el PDF
+    const datosParaPDF = [...productos];
+    if (productos.length > 0) {
+      datosParaPDF.push({
+        id: '',
+        nombre: 'TOTAL CONSOLIDADO:',
+        categoria_nombre: '',
+        stock_bodega: totalBodega,
+        stock_vitrina: totalVitrina,
+        total_consolidado: totalConsolidado
+      });
+    }
+
+    // Buscamos el nombre de la categoría para el título del PDF
+    const nombreCategoria = categoriaSeleccionada === 'todas' 
+      ? 'Todas las categorías' 
+      : categorias.find(c => c.id === categoriaSeleccionada)?.nombre || 'Filtrado';
+
+    const titulo = `Reporte de Existencias - ${nombreCategoria}`;
+    generarPDF(titulo, columnas, datosParaPDF);
+  };
+
   return (
     <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
       {/* Encabezado fuera de tarjeta, con fondo transparente */}
@@ -94,47 +130,48 @@ export default function ReporteExistencias() {
         </Box>
       </Box>
 
-      {/* Filtro compacto superior */}
-      <Box sx={{ mb: 3, maxWidth: 500 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={8}>
-            <FormControl fullWidth size="small" sx={{ bgcolor: '#fff', borderRadius: 1 }}>
-              <InputLabel id="categoria-select-label">Filtrar por Categoría</InputLabel>
-              <Select
-                labelId="categoria-select-label"
-                value={categoriaSeleccionada}
-                label="Filtrar por Categoría"
-                onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-              >
-                <MenuItem value="todas">Todas las categorías</MenuItem>
-                {categorias.map((cat) => (
-                  <MenuItem key={cat.id} value={cat.id}>
-                    {cat.nombre}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+      {/* Filtro compacto y Botones */}
+      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', mb: 3 }}>
+        <FormControl size="small" sx={{ bgcolor: '#fff', borderRadius: 1, minWidth: 250 }}>
+          <InputLabel id="categoria-select-label">Filtrar por Categoría</InputLabel>
+          <Select
+            labelId="categoria-select-label"
+            value={categoriaSeleccionada}
+            label="Filtrar por Categoría"
+            onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+          >
+            <MenuItem value="todas">Todas las categorías</MenuItem>
+            {categorias.map((cat) => (
+              <MenuItem key={cat.id} value={cat.id}>
+                {cat.nombre}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-          <Grid item xs={12} sm={4}>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              onClick={cargarReporte}
-              sx={{
-                bgcolor: verdePapelitos,
-                '&:hover': { bgcolor: '#143d22' },
-                borderRadius: '8px',
-                textTransform: 'none',
-                fontWeight: 'bold',
-                height: '40px'
-              }}
-            >
-              Recargar
-            </Button>
-          </Grid>
-        </Grid>
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={cargarReporte}
+          sx={{
+            backgroundColor: '#fff',
+            color: '#424242',
+            borderColor: '#c4c4c4',
+            textTransform: 'none',
+            borderRadius: '8px',
+            height: '40px',
+            px: 2,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            '&:hover': { backgroundColor: '#f8f9fa', borderColor: '#9e9e9e' }
+          }}
+        >
+          Recargar
+        </Button>
+
+        <BotonExportar 
+          onExportPDF={handleExportarPDF} 
+          disabled={productos.length === 0 || cargando} 
+        />
       </Box>
 
       {error && (

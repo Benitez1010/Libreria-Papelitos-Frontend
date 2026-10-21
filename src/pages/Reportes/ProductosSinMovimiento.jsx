@@ -7,6 +7,8 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { ENDPOINTS } from '../../services/api';
+import BotonExportar from '../../components/BotonExportar';
+import { generarPDFAgrupado } from '../../utils/pdfExport';
 
 const ProductosSinMovimiento = ({ open, onClose }) => {
     const [reporte, setReporte] = useState({});
@@ -14,7 +16,6 @@ const ProductosSinMovimiento = ({ open, onClose }) => {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        // Solo ejecutamos la petición si el modal está abierto
         if (!open) return;
 
         const obtenerReporte = async () => {
@@ -51,6 +52,28 @@ const ProductosSinMovimiento = ({ open, onClose }) => {
             year: 'numeric', month: 'long', day: 'numeric',
             hour: '2-digit', minute: '2-digit'
         }).format(new Date(fecha));
+    };
+
+    // --- LÓGICA DE EXPORTACIÓN A PDF AGRUPADO ---
+    const handleExportarPDF = () => {
+        const columnas = [
+            { header: 'Producto', field: 'nombre' },
+            { header: 'Bodega', field: 'stock_bodega' },
+            { header: 'Vitrina', field: 'stock_vitrina' },
+            { header: 'Total', field: 'stock_total' },
+            { header: 'Última Venta', field: 'ultimo_movimiento_formateado' }
+        ];
+
+        // Preparamos los datos con la fecha ya formateada en texto plano para el PDF
+        const reporteFormateado = {};
+        Object.entries(reporte).forEach(([categoria, productos]) => {
+            reporteFormateado[categoria] = productos.map(prod => ({
+                ...prod,
+                ultimo_movimiento_formateado: formatearFecha(prod.ultimo_movimiento)
+            }));
+        });
+
+        generarPDFAgrupado('Reporte de Productos sin Movimiento (Últimos 3 Meses)', columnas, reporteFormateado);
     };
 
     return (
@@ -113,7 +136,12 @@ const ProductosSinMovimiento = ({ open, onClose }) => {
                     ))
                 )}
             </DialogContent>
-            <DialogActions sx={{ p: 2, bgcolor: '#f9f9f9' }}>
+            
+            <DialogActions sx={{ p: 2, bgcolor: '#f9f9f9', display: 'flex', justifyContent: 'space-between' }}>
+                <BotonExportar 
+                    onExportPDF={handleExportarPDF} 
+                    disabled={Object.keys(reporte).length === 0 || cargando} 
+                />
                 <Button onClick={onClose} variant="outlined" sx={{ color: '#555', borderColor: '#ccc' }}>
                     Cerrar
                 </Button>
