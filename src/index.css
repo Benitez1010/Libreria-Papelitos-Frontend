@@ -12,3 +12,28 @@ html, body, #root {
 body {
   overflow-x: hidden;
 }
+
+/* --- ESTILOS DE IMPRESIÓN --- */
+@media print {
+  /* Oculta los botones, menús laterales y campos de búsqueda al imprimir */
+  button, 
+  .MuiButtonBase-root, 
+  .MuiInputBase-root, /* Campos de texto y selects */
+  header, 
+  nav {
+    display: none !important;
+  }
+
+  /* Asegura que el fondo sea blanco puro para ahorrar tinta */
+  body, .MuiPaper-root {
+    background-color: white !important;
+    box-shadow: none !important;
+    color: black !important;
+  }
+
+  /* Expande la tabla para usar todo el ancho del papel */
+  .MuiTableContainer-root {
+    overflow: visible !important;
+    width: 100% !important;
+  }
+}

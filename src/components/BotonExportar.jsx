@@ -4,10 +4,9 @@ import { Button, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mu
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import TableViewIcon from '@mui/icons-material/TableView';
 import PrintIcon from '@mui/icons-material/Print';
 
-const BotonExportar = () => {
+const BotonExportar = ({ onExportPDF, disabled = false }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -20,8 +19,11 @@ const BotonExportar = () => {
   };
 
   const handleExport = (tipo) => {
-    
-    console.log(`Preparando exportación para: ${tipo}`);
+    if (tipo === 'PDF' && onExportPDF) {
+      onExportPDF();
+    } else if (tipo === 'Impresión Rápida') {
+      window.print(); // Dispara el equivalente a Ctrl+P
+    }
     handleClose();
   };
 
@@ -30,6 +32,7 @@ const BotonExportar = () => {
       <Button
         variant="outlined"
         onClick={handleClick}
+        disabled={disabled}
         startIcon={<FileDownloadIcon />}
         endIcon={<KeyboardArrowDownIcon />}
         sx={{ 
@@ -65,13 +68,6 @@ const BotonExportar = () => {
             <PictureAsPdfIcon fontSize="small" sx={{ color: '#d32f2f' }} />
           </ListItemIcon>
           <ListItemText>Exportar a PDF</ListItemText>
-        </MenuItem>
-        
-        <MenuItem onClick={() => handleExport('Excel')}>
-          <ListItemIcon>
-            <TableViewIcon fontSize="small" sx={{ color: '#2e7d32' }} />
-          </ListItemIcon>
-          <ListItemText>Exportar a Excel (.xlsx)</ListItemText>
         </MenuItem>
       </Menu>
     </>

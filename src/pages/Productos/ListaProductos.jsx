@@ -19,7 +19,6 @@ import RegistrarProductoModal from './RegistrarProductoModal';
 
 // IMPORTACIONES DE COMPONENTES REUTILIZABLES
 import BotonTransacciones from '../../components/BotonTransacciones';
-import BotonExportar from '../../components/BotonExportar';
 
 const ListaProductos = () => {
   const navigate = useNavigate();
@@ -100,10 +99,8 @@ const ListaProductos = () => {
   const esAdmin = rol === 'ADMIN' || rol === 'Administrador';
   const esBodega = rol === 'BODEGA' || rol === 'Operador de Bodega';
 
-  const puedeExportar = esAdmin;
-  const puedeGestionarProducto = esAdmin || esBodega; // Agregar, Editar, 
+  const puedeGestionarProducto = esAdmin || esBodega; // Agregar, Editar 
   const puedeEliminarProducto = esAdmin; // Solo eliminar para Admin
-  
 
   // Función del Botón "Recargar"
   const handleRecargarTabla = () => {
@@ -279,9 +276,6 @@ const ListaProductos = () => {
           >
             Recargar
           </Button>
-
-          {/* COMPONENTE DE EXPORTACIÓN (Solo Admin) */}
-          {puedeExportar && <BotonExportar />}
 
           {/* COMPONENTE DE TRANSACCIONES INTEGRADO */}
           <BotonTransacciones />

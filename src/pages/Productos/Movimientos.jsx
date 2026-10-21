@@ -27,6 +27,14 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
 import { ENDPOINTS } from '../../services/api';
 
+// Herramientas de PDF
+import BotonExportar from '../../components/BotonExportar';
+import { generarPDF } from '../../utils/pdfExport';
+
+// Modal de la historia REP-03 modularizado en la carpeta Reportes
+import ReporteAltaRotacion from '../Reportes/ReporteAltaRotacion';
+import ProductosSinMovimiento from '../Reportes/ProductosSinMovimiento'
+
 const Movimientos = () => {
   const verdePapelitos = '#1E5631';
   const azulPapelitos = '#1976d2';
@@ -40,6 +48,10 @@ const Movimientos = () => {
   const [filtroTipo, setFiltroTipo] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
+
+  // Control para abrir/cerrar el modal de alta rotación
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false);
 
   const cargarHistorial = async () => {
     setCargando(true);
@@ -110,6 +122,31 @@ const Movimientos = () => {
     return coincideTexto && coincideTipo && coincideDesde && coincideHasta;
   });
 
+  // --- LÓGICA DE EXPORTACIÓN A PDF ---
+  const handleExportarPDF = () => {
+    const columnas = [
+      { header: 'Fecha y Hora', field: 'fecha_hora_formateada' },
+      { header: 'Producto', field: 'producto_nombre' },
+      { header: 'Tipo', field: 'tipo_display' },
+      { header: 'Cant.', field: 'cantidad' },
+      { header: 'Origen', field: 'origen_display' },
+      { header: 'Destino', field: 'destino_display' },
+      { header: 'Responsable', field: 'responsable' }
+    ];
+
+    // Mapeamos listaFiltrada para asegurar que los datos estén limpios para el PDF
+    const datosParaPDF = listaFiltrada.map(mov => ({
+      ...mov,
+      fecha_hora_formateada: new Date(mov.fecha_hora).toLocaleString('es-SV'),
+      tipo_display: mov.tipo_display || mov.tipo,
+      origen_display: mov.origen_display || mov.origen,
+      destino_display: mov.destino_display || mov.destino,
+      responsable: mov.responsable || 'Sin asignar'
+    }));
+
+    generarPDF('Historial de Movimientos de Inventario', columnas, datosParaPDF);
+  };
+
   return (
     <Box sx={{ p: 4, fontFamily: '"Inter", sans-serif' }}>
       {/* 1. Título Limpio */}
@@ -134,7 +171,7 @@ const Movimientos = () => {
           gap: 2
         }}
       >
-        {/* Lado Izquierdo: Buscador + Tipo + Recargar */}
+        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Exportar + Botón Reporte */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             size="small"
@@ -210,6 +247,50 @@ const Movimientos = () => {
             }}
           >
             Recargar
+          </Button>
+
+          {/* Botón Exportar PDF */}
+          <BotonExportar 
+            onExportPDF={handleExportarPDF} 
+            disabled={listaFiltrada.length === 0 || cargando} 
+          />
+
+          {/* Botón de REP-03: Abre el modal del reporte de demanda */}
+          <Button
+            onClick={() => setModalAbierto(true)}
+            variant="contained"
+            startIcon={<TrendingUpIcon />}
+            sx={{
+              backgroundColor: verdePapelitos,
+              color: '#fff',
+              textTransform: 'none',
+              borderRadius: '8px',
+              height: '40px',
+              px: 2,
+              fontWeight: 'bold',
+              boxShadow: '0 2px 4px rgba(30,86,49,0.2)',
+              '&:hover': { backgroundColor: '#143c22' }
+            }}
+          >
+            Ver Más Vendidos
+          </Button>
+          <Button
+            onClick={() => setModalSinMovimientoAbierto(true)}
+            variant="contained"
+            startIcon={<TrendingDownIcon />}
+            sx={{
+              backgroundColor: '#ed6c02',
+              color: '#fff',
+              textTransform: 'none',
+              borderRadius: '8px',
+              height: '40px',
+              px: 2,
+              fontWeight: 'bold',
+              boxShadow: '0 2px 4px rgba(237,108,2,0.2)',
+              '&:hover': { backgroundColor: '#e65100' }
+            }}
+          >
+            Sin Movimientos
           </Button>
         </Box>
 
