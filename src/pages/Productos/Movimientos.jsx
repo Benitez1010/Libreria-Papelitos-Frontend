@@ -30,6 +30,10 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { ENDPOINTS } from '../../services/api';
 
+// Herramientas de PDF
+import BotonExportar from '../../components/BotonExportar';
+import { generarPDF } from '../../utils/pdfExport';
+
 // Modal de la historia REP-03 modularizado en la carpeta Reportes
 import ReporteAltaRotacion from '../Reportes/ReporteAltaRotacion';
 import ProductosSinMovimiento from '../Reportes/ProductosSinMovimiento'
@@ -52,7 +56,7 @@ const Movimientos = () => {
 
   // Control para abrir/cerrar el modal de alta rotación
   const [modalAbierto, setModalAbierto] = useState(false);
-const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false);
+  const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false);
 
   const cargarHistorial = async () => {
     setCargando(true);
@@ -123,6 +127,31 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
     return coincideTexto && coincideTipo && coincideDesde && coincideHasta;
   });
 
+  // --- LÓGICA DE EXPORTACIÓN A PDF ---
+  const handleExportarPDF = () => {
+    const columnas = [
+      { header: 'Fecha y Hora', field: 'fecha_hora_formateada' },
+      { header: 'Producto', field: 'producto_nombre' },
+      { header: 'Tipo', field: 'tipo_display' },
+      { header: 'Cant.', field: 'cantidad' },
+      { header: 'Origen', field: 'origen_display' },
+      { header: 'Destino', field: 'destino_display' },
+      { header: 'Responsable', field: 'responsable' }
+    ];
+
+    // Mapeamos listaFiltrada para asegurar que los datos estén limpios para el PDF
+    const datosParaPDF = listaFiltrada.map(mov => ({
+      ...mov,
+      fecha_hora_formateada: new Date(mov.fecha_hora).toLocaleString('es-SV'),
+      tipo_display: mov.tipo_display || mov.tipo,
+      origen_display: mov.origen_display || mov.origen,
+      destino_display: mov.destino_display || mov.destino,
+      responsable: mov.responsable || 'Sin asignar'
+    }));
+
+    generarPDF('Historial de Movimientos de Inventario', columnas, datosParaPDF);
+  };
+
   return (
     <Box sx={{ p: 4, fontFamily: '"Inter", sans-serif' }}>
       {/* 1. Título Limpio */}
@@ -147,7 +176,7 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
           gap: 2
         }}
       >
-        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Botón Reporte */}
+        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Exportar + Botón Reporte */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             size="small"
@@ -225,6 +254,12 @@ const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false
           >
             Recargar
           </Button>
+
+          {/* Botón Exportar PDF */}
+          <BotonExportar 
+            onExportPDF={handleExportarPDF} 
+            disabled={listaFiltrada.length === 0 || cargando} 
+          />
 
           {/* Botón de REP-03: Abre el modal del reporte de demanda */}
           <Button

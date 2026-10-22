@@ -22,6 +22,11 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { ENDPOINTS } from '../../services/api';
 
+// Herramientas PDF
+import BotonExportar from '../../components/BotonExportar';
+import { generarPDF } from '../../utils/pdfExport';
+import { generarExcel } from '../../utils/excelExport';
+
 const verdePapelitos = '#1E5631';
 
 const getHeaders = () => {
@@ -96,6 +101,57 @@ export default function ReporteStockCritico() {
 
   const productosPaginados = productos.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
+  // --- LÓGICA DE EXPORTACIÓN A PDF ---
+  const handleExportarPDF = () => {
+    const columnas = [
+      { header: 'Producto', field: 'nombre' },
+      { header: 'Categoría', field: 'categoria_nombre' },
+      { header: 'Bodega', field: 'stock_bodega' },
+      { header: 'Vitrina', field: 'stock_vitrina' },
+      { header: 'Total', field: 'total_consolidado' },
+      { header: 'Stock Mín.', field: 'stock_minimo' },
+      { header: 'A Reabastecer', field: 'cantidad_sugerida' },
+      { header: 'Estado', field: 'estado_texto' }
+    ];
+
+    // Preparamos los datos inyectando el texto de estado que en pantalla es un Chip
+    const datosParaPDF = productos.map(p => ({
+      ...p,
+      estado_texto: p.total_consolidado === 0 ? 'Agotado' : 'Crítico'
+    }));
+
+    const nombreCategoria = categoriaSeleccionada === '' 
+      ? 'Todas las categorías' 
+      : categorias.find(c => c.id === categoriaSeleccionada)?.nombre || 'Filtrado';
+
+    const titulo = `Reporte de Stock Crítico - ${nombreCategoria}`;
+    generarPDF(titulo, columnas, datosParaPDF);
+  };
+
+  const handleExportarExcel = () => {
+    const columnas = [
+      { header: 'Producto', field: 'nombre' },
+      { header: 'Categoría', field: 'categoria_nombre' },
+      { header: 'Bodega', field: 'stock_bodega' },
+      { header: 'Vitrina', field: 'stock_vitrina' },
+      { header: 'Total', field: 'total_consolidado' },
+      { header: 'Stock Mín.', field: 'stock_minimo' },
+      { header: 'A Reabastecer', field: 'cantidad_sugerida' },
+      { header: 'Estado', field: 'estado_texto' }
+    ];
+
+    const datosParaExcel = productos.map((p) => ({
+      ...p,
+      estado_texto: p.total_consolidado === 0 ? 'Agotado' : 'Crítico'
+    }));
+
+    const nombreCategoria = categoriaSeleccionada === ''
+      ? 'Todas las categorías'
+      : categorias.find((c) => c.id === categoriaSeleccionada)?.nombre || 'Filtrado';
+
+    generarExcel(`Reporte de Stock Crítico - ${nombreCategoria}`, columnas, datosParaExcel);
+  };
+
   return (
     <Box sx={{ p: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -129,6 +185,7 @@ export default function ReporteStockCritico() {
       </Box>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        {/* Lado Izquierdo: Filtro */}
         <FormControl size="small" sx={{ minWidth: 200, backgroundColor: '#fff', '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}>
           <Select displayEmpty value={categoriaSeleccionada} onChange={handleCategoryChange}>
             <MenuItem value="">
@@ -142,21 +199,30 @@ export default function ReporteStockCritico() {
           </Select>
         </FormControl>
 
-        <Button
-          onClick={handleRecargar}
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          sx={{
-            backgroundColor: '#fff',
-            color: '#424242',
-            borderColor: '#bdbdbd',
-            textTransform: 'none',
-            borderRadius: '8px',
-            '&:hover': { backgroundColor: '#f5f5f5', borderColor: '#9e9e9e' }
-          }}
-        >
-          Recargar
-        </Button>
+        {/* Lado Derecho: Botones */}
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button
+            onClick={handleRecargar}
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            sx={{
+              backgroundColor: '#fff',
+              color: '#424242',
+              borderColor: '#bdbdbd',
+              textTransform: 'none',
+              borderRadius: '8px',
+              '&:hover': { backgroundColor: '#f5f5f5', borderColor: '#9e9e9e' }
+            }}
+          >
+            Recargar
+          </Button>
+
+          <BotonExportar 
+            onExportPDF={handleExportarPDF} 
+            onExportExcel={handleExportarExcel}
+            disabled={productos.length === 0 || cargando} 
+          />
+        </Box>
       </Box>
 
       <Paper elevation={3} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
