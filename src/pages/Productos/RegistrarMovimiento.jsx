@@ -246,6 +246,12 @@ const RegistrarMovimiento = () => {
             </Box>
           )}
 
+          {contexto === 'entrada' && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Las unidades ingresadas se sumarán al stock de <strong>Bodega</strong>.
+            </Alert>
+          )}
+
           <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Detalle de Productos</Typography>
           
           <TableContainer component={Paper} variant="outlined" sx={{ mb: 3, borderRadius: '8px' }}>
