@@ -6,8 +6,10 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import PrintIcon from '@mui/icons-material/Print';
 import TableViewIcon from '@mui/icons-material/TableView';
+import { useEsAdmin } from './ProtectorRuta';
 
 const BotonExportar = ({ onExportPDF, onExportExcel, disabled = false }) => {
+  const esAdmin = useEsAdmin();   //  
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -30,6 +32,8 @@ const BotonExportar = ({ onExportPDF, onExportExcel, disabled = false }) => {
     }
     handleClose();
   };
+  // Solo el administrador puede exportar
+  if (!esAdmin) return null;
 
   return (
     <>
