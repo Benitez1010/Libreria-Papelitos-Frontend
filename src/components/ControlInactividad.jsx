@@ -11,6 +11,13 @@ import {
   CircularProgress
 } from '@mui/material';
 
+// Configuración de tiempos:
+// 14 minutos inactivo -> Salta el modal
+// 60 segundos de gracia dentro del modal (Total = 15 min)
+const TIEMPO_PREVIO_AVISO = 14 * 60 * 1000;
+const SEGUNDOS_GRACIA = 60;
+const TIEMPO_TOTAL = TIEMPO_PREVIO_AVISO + SEGUNDOS_GRACIA * 1000;
+
 const ControlInactividad = ({ children }) => {
   const navigate = useNavigate();
 
@@ -18,20 +25,19 @@ const ControlInactividad = ({ children }) => {
   const verdePapelitos = '#1E5631';
   const verdeOscuro = '#0D472E';
 
-  // Configuración de tiempos:
-  // 14 minutos inactivo -> Salta el modal (14 * 60 * 1000 = 840,000 ms)
-  // 60 segundos de gracia dentro del modal (Total = 15 min)
-  const TIEMPO_PREVIO_AVISO = 14 * 60 * 1000;
-  const SEGUNDOS_GRACIA = 60;
-
   const [modalAbierto, setModalAbierto] = useState(false);
   const [segundosRestantes, setSegundosRestantes] = useState(SEGUNDOS_GRACIA);
 
-  const timeoutInactividadRef = useRef(null);
+  const modalAbiertoRef = useRef(false);
+  const ultimoRegistroRef = useRef(0);
+  const cerrandoRef = useRef(false);
 
   // 1. Cierre total de sesión y expulsión limpia
   const ejecutarCierreSesion = useCallback(() => {
-    if (timeoutInactividadRef.current) clearTimeout(timeoutInactividadRef.current);
+    if (cerrandoRef.current) return;
+    cerrandoRef.current = true;
+
+    modalAbiertoRef.current = false;
     setModalAbierto(false);
     localStorage.removeItem('token');
     localStorage.removeItem('ultima_actividad');
@@ -42,72 +48,83 @@ const ControlInactividad = ({ children }) => {
     });
   }, [navigate]);
 
-  // 2. Reiniciar el temporizador de inactividad de 14 minutos
-  const reiniciarInactividad = useCallback(() => {
-    if (timeoutInactividadRef.current) clearTimeout(timeoutInactividadRef.current);
+  // 2. Guarda la hora de la última actividad (máx. 1 vez por segundo).
+  //    Mientras el modal está abierto la actividad se ignora: solo "Continuar" reinicia.
+  const registrarActividad = useCallback(() => {
+    if (modalAbiertoRef.current) return;
+    const ahora = Date.now();
+    if (ahora - ultimoRegistroRef.current < 1000) return;
+    ultimoRegistroRef.current = ahora;
+    localStorage.setItem('ultima_actividad', String(ahora));
+  }, []);
 
-    const token = localStorage.getItem('token');
-    if (!token) return;
+  // 3. Calcula la inactividad con la HORA REAL (no con contadores de setTimeout/setInterval,
+  //    que el navegador frena cuando la pestaña está en segundo plano o el equipo se suspende).
+  const evaluarInactividad = useCallback(() => {
+    if (!localStorage.getItem('token')) return;
 
-    timeoutInactividadRef.current = setTimeout(() => {
-      setSegundosRestantes(SEGUNDOS_GRACIA);
-      setModalAbierto(true);
-    }, TIEMPO_PREVIO_AVISO);
-  }, [TIEMPO_PREVIO_AVISO]);
+    const ultima = Number(localStorage.getItem('ultima_actividad')) || Date.now();
+    const inactivo = Date.now() - ultima;
 
-  // 3. Botón "Continuar en el sistema": restablece todo y cierra el modal
-  const handleContinuarSesion = () => {
-    setModalAbierto(false);
-    setSegundosRestantes(SEGUNDOS_GRACIA);
-    reiniciarInactividad();
-  };
-
-  // 4. Temporizador activo del modal (Cuenta regresiva fluida 60 -> 0)
-  useEffect(() => {
-    let intervalo = null;
-
-    if (modalAbierto) {
-      intervalo = setInterval(() => {
-        setSegundosRestantes((prev) => {
-          if (prev <= 1) {
-            clearInterval(intervalo);
-            ejecutarCierreSesion();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    if (inactivo >= TIEMPO_TOTAL) {
+      ejecutarCierreSesion();
+      return;
     }
 
-    return () => {
-      if (intervalo) clearInterval(intervalo);
-    };
-  }, [modalAbierto, ejecutarCierreSesion]);
+    if (inactivo >= TIEMPO_PREVIO_AVISO) {
+      modalAbiertoRef.current = true;
+      setModalAbierto(true);
+      setSegundosRestantes(Math.max(0, Math.ceil((TIEMPO_TOTAL - inactivo) / 1000)));
+    } else {
+      modalAbiertoRef.current = false;
+      setModalAbierto(false);
+      setSegundosRestantes(SEGUNDOS_GRACIA);
+    }
+  }, [ejecutarCierreSesion]);
 
-  // 5. Escucha de eventos de usuario mientras el modal NO esté abierto
+  // 4. Botón "Continuar en el sistema": restablece todo y cierra el modal
+  const handleContinuarSesion = () => {
+    modalAbiertoRef.current = false;
+    ultimoRegistroRef.current = 0;
+    localStorage.setItem('ultima_actividad', String(Date.now()));
+    setModalAbierto(false);
+    setSegundosRestantes(SEGUNDOS_GRACIA);
+  };
+
+  // 5. Eventos de usuario + revisión cada segundo + revisión inmediata al volver a la pestaña
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token || modalAbierto) return;
+    if (!localStorage.getItem('token')) return;
+
+    // Al montar (inicio de sesión o recarga) la cuenta empieza desde cero
+    cerrandoRef.current = false;
+    ultimoRegistroRef.current = 0;
+    localStorage.setItem('ultima_actividad', String(Date.now()));
 
     const eventos = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'wheel'];
-
-    const manejarActividad = () => {
-      reiniciarInactividad();
-    };
-
     eventos.forEach((evento) => {
-      window.addEventListener(evento, manejarActividad, { passive: true });
+      window.addEventListener(evento, registrarActividad, { passive: true });
     });
 
-    reiniciarInactividad();
+    const intervalo = setInterval(evaluarInactividad, 1000);
+
+    // Al regresar a la pestaña, o al despertar el equipo, se recalcula al instante
+    const alVolver = () => {
+      if (document.visibilityState === 'visible') evaluarInactividad();
+    };
+    document.addEventListener('visibilitychange', alVolver);
+    window.addEventListener('focus', evaluarInactividad);
+    window.addEventListener('pageshow', evaluarInactividad);
 
     return () => {
-      if (timeoutInactividadRef.current) clearTimeout(timeoutInactividadRef.current);
+      clearInterval(intervalo);
       eventos.forEach((evento) => {
-        window.removeEventListener(evento, manejarActividad);
+        window.removeEventListener(evento, registrarActividad);
       });
+      document.removeEventListener('visibilitychange', alVolver);
+      window.removeEventListener('focus', evaluarInactividad);
+      window.removeEventListener('pageshow', evaluarInactividad);
     };
-  }, [modalAbierto, reiniciarInactividad]);
+  }, [registrarActividad, evaluarInactividad]);
 
   // Progreso visual del anillo circular
   const porcentajeProgreso = ((SEGUNDOS_GRACIA - segundosRestantes) / SEGUNDOS_GRACIA) * 100;
