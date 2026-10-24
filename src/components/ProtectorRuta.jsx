@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { ENDPOINTS } from '../services/api';
 
+// Permite que cualquier componente dentro de una ruta protegida sepa si el usuario es Administrador
+// (se usa para mostrar/ocultar botones como Exportar y los reportes).
+const AdminContext = createContext(false);
+export const useEsAdmin = () => useContext(AdminContext);
+
 const ProtectorRuta = ({ children, modulo, accion = 'master' }) => {
   const [autorizado, setAutorizado] = useState(null);
+  const [esAdminUsuario, setEsAdminUsuario] = useState(false);
   const location = useLocation(); 
 
   useEffect(() => {
@@ -28,6 +34,7 @@ const ProtectorRuta = ({ children, modulo, accion = 'master' }) => {
           const permisosBackend = data.permisos || {}; 
           
           const esAdmin = rolTexto.includes('ADMIN');
+          setEsAdminUsuario(esAdmin);
           const esBodega = rolTexto.includes('BODEGA');
           const esCaja = rolTexto.includes('CAJA');
 
@@ -46,7 +53,7 @@ const ProtectorRuta = ({ children, modulo, accion = 'master' }) => {
           // REGLA 2: BLOQUEO ESTRICTO DE RUTAS DE USUARIOS
    
           // Bloquea localhost:5173/usuarios y localhost:5173/Listadousuarios
-          if (pathActual.includes('usuario') || pathActual.includes('rol') || pathActual.includes('acceso')|| pathActual.includes('bitacora')) {
+          if (pathActual.includes('usuario') || pathActual.includes('/rol') || pathActual.includes('acceso')|| pathActual.includes('bitacora')) {
             setAutorizado(false); 
             return;
           }
@@ -111,7 +118,9 @@ const ProtectorRuta = ({ children, modulo, accion = 'master' }) => {
   }
 
   // Si no está autorizado, lo saca de inmediato al dashboard
-  return autorizado ? children : <Navigate to="/" replace state={{ from: location }} />;
+  return autorizado
+    ? <AdminContext.Provider value={esAdminUsuario}>{children}</AdminContext.Provider>
+    : <Navigate to="/" replace state={{ from: location }} />;
 };
 
 export default ProtectorRuta;

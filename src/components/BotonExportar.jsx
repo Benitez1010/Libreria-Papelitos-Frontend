@@ -5,8 +5,11 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import PrintIcon from '@mui/icons-material/Print';
+import TableViewIcon from '@mui/icons-material/TableView';
+import { useEsAdmin } from './ProtectorRuta';
 
-const BotonExportar = ({ onExportPDF, disabled = false }) => {
+const BotonExportar = ({ onExportPDF, onExportExcel, disabled = false }) => {
+  const esAdmin = useEsAdmin();   //  
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -24,8 +27,13 @@ const BotonExportar = ({ onExportPDF, disabled = false }) => {
     } else if (tipo === 'Impresión Rápida') {
       window.print(); // Dispara el equivalente a Ctrl+P
     }
+    if (tipo === 'Excel' && onExportExcel) {
+      onExportExcel();
+    }
     handleClose();
   };
+  // Solo el administrador puede exportar
+  if (!esAdmin) return null;
 
   return (
     <>
@@ -69,6 +77,17 @@ const BotonExportar = ({ onExportPDF, disabled = false }) => {
           </ListItemIcon>
           <ListItemText>Exportar a PDF</ListItemText>
         </MenuItem>
+
+        {onExportExcel && <Divider />}
+
+        {onExportExcel && (
+          <MenuItem onClick={() => handleExport('Excel')}>
+            <ListItemIcon>
+              <TableViewIcon fontSize="small" sx={{ color: '#2e7d32' }} />
+            </ListItemIcon>
+            <ListItemText>Exportar a Excel</ListItemText>
+          </MenuItem>
+        )}
       </Menu>
     </>
   );

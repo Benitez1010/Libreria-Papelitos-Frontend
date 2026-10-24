@@ -61,7 +61,7 @@ function App() {
           } />
 
           <Route path="categorias/editar/:id" element={
-            <ProtectorRuta modulo="categorias">
+            <ProtectorRuta modulo="categorias" accion="editar">
               <EditarCategoria />
             </ProtectorRuta>
           } />
@@ -101,7 +101,7 @@ function App() {
           } />
 
           <Route path="productos/editar/:id" element={
-            <ProtectorRuta modulo="productos">
+            <ProtectorRuta modulo="productos" accion="editar">
               <EditarProducto />
             </ProtectorRuta>
           } />
@@ -112,11 +112,23 @@ function App() {
             </ProtectorRuta>
           } />
           
-          <Route path="movimientos" element={<Movimientos />} />
+          <Route path="movimientos" element={
+            <ProtectorRuta modulo="movimientos">
+              <Movimientos />
+            </ProtectorRuta>
+          } />
 
-          <Route path="control-inventario" element={<ReporteExistencias />} />
+          <Route path="control-inventario" element={
+            <ProtectorRuta modulo="control_inventario">
+              <ReporteExistencias />
+            </ProtectorRuta>
+          } />
 
-          <Route path="stock-critico" element={<ReporteStockCritico />} />
+          <Route path="stock-critico" element={
+            <ProtectorRuta modulo="control_inventario">
+              <ReporteStockCritico />
+            </ProtectorRuta>
+          } />
           
         </Route>
       </Route>

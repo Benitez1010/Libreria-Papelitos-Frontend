@@ -467,9 +467,11 @@ const Usuarios = () => {
                       )}
                       {usuario.is_active ? (
                         <Tooltip title="Dar de Baja">
-                          <IconButton onClick={() => abrirModal(usuario, 'desactivar')} sx={{ color: '#d32f2f' }}>
+                          <span>
+                          <IconButton onClick={() => abrirModal(usuario, 'desactivar')} disabled={usuarioActual?.id === usuario.id} sx={{ color: '#d32f2f' }}>
                             <PersonOffIcon />
                           </IconButton>
+                          </span>
                         </Tooltip>
                       ) : (
                         <Tooltip title="Reactivar Usuario">

@@ -25,6 +25,7 @@ import { ENDPOINTS } from '../../services/api';
 // Herramientas PDF
 import BotonExportar from '../../components/BotonExportar';
 import { generarPDF } from '../../utils/pdfExport';
+import { generarExcel } from '../../utils/excelExport';
 
 const verdePapelitos = '#1E5631';
 
@@ -127,6 +128,30 @@ export default function ReporteStockCritico() {
     generarPDF(titulo, columnas, datosParaPDF);
   };
 
+  const handleExportarExcel = () => {
+    const columnas = [
+      { header: 'Producto', field: 'nombre' },
+      { header: 'Categoría', field: 'categoria_nombre' },
+      { header: 'Bodega', field: 'stock_bodega' },
+      { header: 'Vitrina', field: 'stock_vitrina' },
+      { header: 'Total', field: 'total_consolidado' },
+      { header: 'Stock Mín.', field: 'stock_minimo' },
+      { header: 'A Reabastecer', field: 'cantidad_sugerida' },
+      { header: 'Estado', field: 'estado_texto' }
+    ];
+
+    const datosParaExcel = productos.map((p) => ({
+      ...p,
+      estado_texto: p.total_consolidado === 0 ? 'Agotado' : 'Crítico'
+    }));
+
+    const nombreCategoria = categoriaSeleccionada === ''
+      ? 'Todas las categorías'
+      : categorias.find((c) => c.id === categoriaSeleccionada)?.nombre || 'Filtrado';
+
+    generarExcel(`Reporte de Stock Crítico - ${nombreCategoria}`, columnas, datosParaExcel);
+  };
+
   return (
     <Box sx={{ p: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
@@ -194,6 +219,7 @@ export default function ReporteStockCritico() {
 
           <BotonExportar 
             onExportPDF={handleExportarPDF} 
+            onExportExcel={handleExportarExcel}
             disabled={productos.length === 0 || cargando} 
           />
         </Box>
