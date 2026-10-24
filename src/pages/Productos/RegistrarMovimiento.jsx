@@ -23,7 +23,7 @@ const RegistrarMovimiento = () => {
   const [alerta, setAlerta] = useState({ tipo: '', mensaje: '' });
   const [justificacion, setJustificacion] = useState('');
   const [lineasMovimiento, setLineasMovimiento] = useState([]);
-  const [alertaStockEmergente, setAlertaStockEmergente] = useState({ open: false, productos: [] });
+  const [alertaStockEmergente, setAlertaStockEmergente] = useState({ open: false, productos: [], notificaciones: [] });
   
   // MATRIZ DE CONFIGURACIÓN DINÁMICA (CORREGIDA: Sin el contexto 'salida')
   const configContexto = {
@@ -193,7 +193,13 @@ const RegistrarMovimiento = () => {
 
           // Si hay al menos uno, abrimos el pop-up emergente
           if (productosCriticos.length > 0) {
-            setAlertaStockEmergente({ open: true, productos: productosCriticos });
+            setAlertaStockEmergente({
+              open: true,
+              productos: productosCriticos,
+              notificaciones: data.detalles_procesados
+                .filter(item => item.requiere_alerta)
+                .map(item => item.estado_notificacion),
+            });
           }
         }
       } else {
@@ -394,6 +400,7 @@ const RegistrarMovimiento = () => {
             setAlertaStockEmergente({ ...alertaStockEmergente, open: false });
           }
         }} 
+        notificaciones={alertaStockEmergente.notificaciones}
         productos={alertaStockEmergente.productos} 
       />        
 

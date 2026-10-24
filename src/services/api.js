@@ -29,6 +29,7 @@ export const ENDPOINTS = {
   ALERTAS: {
     DESTINATARIOS: `${BASE_URL}/destinatarios/`,
     HISTORIAL: `${BASE_URL}/historial-alertas/`,
+    CONFIGURACION: `${BASE_URL}/configuracion/`,
   },
 
   // Módulo de Reportes

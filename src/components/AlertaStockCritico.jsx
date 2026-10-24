@@ -2,7 +2,18 @@ import React from 'react';
 import { Snackbar, Alert, Typography, Box } from '@mui/material';
 
 //Alerta que se muestra cuando el stock de un producto llega a un nivel crítico.
-const AlertaStockCritico = ({ open, onClose, productos }) => {
+const AlertaStockCritico = ({ open, onClose, productos, notificaciones = [] }) => {
+  const enviadas = notificaciones.filter(estado => estado === 'enviada').length;
+  const desactivadas = notificaciones.filter(estado => estado === 'desactivada').length;
+  let mensajeCorreo = 'No se confirmó el envío de correo para esta alerta.';
+  if (notificaciones.length > 0 && desactivadas === notificaciones.length) {
+    mensajeCorreo = 'No se enviaron correos porque las alertas globales están desactivadas.';
+  } else if (notificaciones.length > 0 && enviadas === notificaciones.length) {
+    mensajeCorreo = 'Se enviaron las alertas por correo a los destinatarios activos.';
+  } else if (enviadas > 0) {
+    mensajeCorreo = 'Se enviaron algunas alertas por correo, pero otras no se enviaron.';
+  }
+
   return (
     <Snackbar 
       open={open} 
@@ -39,7 +50,7 @@ const AlertaStockCritico = ({ open, onClose, productos }) => {
           borderTop: '1px solid rgba(255, 255, 255, 0.4)' // Línea sutil divisoria
         }}>
           <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
-            ✉️ Se ha despachado un correo automático a los administradores.
+            {mensajeCorreo}
           </Typography>
         </Box>
       </Alert>
