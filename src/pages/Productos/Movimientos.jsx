@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -18,7 +19,8 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Tooltip
+  Tooltip,
+  TablePagination
 } from '@mui/material';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -26,28 +28,44 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ClearIcon from '@mui/icons-material/Clear';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { ENDPOINTS } from '../../services/api';
+import { useEsAdmin } from '../../components/ProtectorRuta';
 
-// Modal de la historia REP-03 modularizado en la carpeta Reportes
+// Herramientas de PDF
+import BotonExportar from '../../components/BotonExportar';
+import { generarPDF } from '../../utils/pdfExport';
+
+// Modales modularizados de la carpeta Reportes
 import ReporteAltaRotacion from '../Reportes/ReporteAltaRotacion';
+import ProductosSinMovimiento from '../Reportes/ProductosSinMovimiento';
 
 const Movimientos = () => {
   const verdePapelitos = '#1E5631';
   const azulPapelitos = '#1976d2';
 
+  const navigate = useNavigate();
+  const esAdmin = useEsAdmin(); // Exportar y reportes: solo administrador
+
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
-  
+
+  // Estados de paginación seguros
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   // Estados de filtrado
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('');
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
+  // Validaciones limpias de fecha para REP-05
   const manejarCambioDesde = (event) => {
     const nuevaFechaDesde = event.target.value;
     setFechaDesde(nuevaFechaDesde);
+    setPage(0);
 
     if (nuevaFechaDesde && fechaHasta && nuevaFechaDesde > fechaHasta) {
       setFechaHasta(nuevaFechaDesde);
@@ -61,10 +79,12 @@ const Movimientos = () => {
         ? fechaDesde
         : nuevaFechaHasta
     );
+    setPage(0);
   };
 
-  // Control para abrir/cerrar el modal de alta rotación
+  // Control para abrir/cerrar modales
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [modalSinMovimientoAbierto, setModalSinMovimientoAbierto] = useState(false);
 
   const cargarHistorial = async () => {
     setCargando(true);
@@ -80,7 +100,7 @@ const Movimientos = () => {
 
       if (res.ok) {
         const data = await res.json();
-        setMovimientos(data);
+        setMovimientos(Array.isArray(data) ? data : (data.results || []));
         setError('');
       } else {
         setError(`Error del servidor (${res.status}): No se pudo obtener el historial.`);
@@ -121,7 +141,7 @@ const Movimientos = () => {
 
     const coincideTipo = filtroTipo === '' || m.tipo === filtroTipo;
 
-    const fechaSoloDia = m.fecha_hora ? m.fecha_hora.split('T')[0] : '';
+    const fechaSoloDia = m.fecha_hora ? m.fecha_hora.split('T')[0] : (m.fecha ? m.fecha.split('T')[0] : '');
     let coincideDesde = true;
     let coincideHasta = true;
 
@@ -134,6 +154,45 @@ const Movimientos = () => {
 
     return coincideTexto && coincideTipo && coincideDesde && coincideHasta;
   });
+
+  // Filas visibles en la página actual
+  const movimientosPaginados = listaFiltrada.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // --- LÓGICA DE EXPORTACIÓN A PDF ---
+  const handleExportarPDF = () => {
+    const columnas = [
+      { header: 'Fecha y Hora', field: 'fecha_hora_formateada' },
+      { header: 'Producto', field: 'producto_nombre' },
+      { header: 'Tipo', field: 'tipo_display' },
+      { header: 'Cant.', field: 'cantidad' },
+      { header: 'Origen', field: 'origen_display' },
+      { header: 'Destino', field: 'destino_display' },
+      { header: 'Responsable', field: 'responsable' }
+    ];
+
+    const datosParaPDF = listaFiltrada.map(mov => ({
+      ...mov,
+      fecha_hora_formateada: new Date(mov.fecha_hora || mov.fecha).toLocaleString('es-SV'),
+      tipo_display: mov.tipo_display || mov.tipo,
+      origen_display: mov.origen_display || mov.origen,
+      destino_display: mov.destino_display || mov.destino,
+      responsable: mov.responsable || 'Sin asignar'
+    }));
+
+    generarPDF('Historial de Movimientos de Inventario', columnas, datosParaPDF);
+  };
 
   return (
     <Box sx={{ p: 4, fontFamily: '"Inter", sans-serif' }}>
@@ -152,23 +211,23 @@ const Movimientos = () => {
       <Box 
         sx={{ 
           display: 'flex', 
-          justifyContent: 'space-between',
+          justify: 'space-between',
           alignItems: 'center', 
           mb: 3, 
           flexWrap: 'wrap',
           gap: 2
         }}
       >
-        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Botón Reporte */}
+        {/* Lado Izquierdo: Buscador + Tipo + Recargar + Exportar + Botones Reportes */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             size="small"
             placeholder="Buscar por ID, nombre o responsable"
             value={filtroTexto}
-            onChange={(e) => setFiltroTexto(e.target.value)}
+            onChange={(e) => { setFiltroTexto(e.target.value); setPage(0); }}
             sx={{
               bgcolor: '#fff',
-              width: { xs: '100%', sm: 380 },
+              width: { xs: '100%', sm: 320 },
               '& .MuiOutlinedInput-root': { 
                 borderRadius: '8px',
                 height: '40px'
@@ -180,7 +239,7 @@ const Movimientos = () => {
             <Select
               displayEmpty
               value={filtroTipo}
-              onChange={(e) => setFiltroTipo(e.target.value)}
+              onChange={(e) => { setFiltroTipo(e.target.value); setPage(0); }}
               renderValue={(selected) => {
                 const labels = {
                   '': 'Todos los tipos',
@@ -238,28 +297,56 @@ const Movimientos = () => {
             Recargar
           </Button>
 
-          {/* Botón de REP-03: Abre el modal del reporte de demanda */}
-          <Button
-            onClick={() => setModalAbierto(true)}
-            variant="contained"
-            startIcon={<TrendingUpIcon />}
-            sx={{
-              backgroundColor: verdePapelitos,
-              color: '#fff',
-              textTransform: 'none',
-              borderRadius: '8px',
-              height: '40px',
-              px: 2,
-              fontWeight: 'bold',
-              boxShadow: '0 2px 4px rgba(30,86,49,0.2)',
-              '&:hover': { backgroundColor: '#143c22' }
-            }}
-          >
-            Ver Más Vendidos
-          </Button>
+          {/* Botón Exportar PDF */}
+          <BotonExportar 
+            onExportPDF={handleExportarPDF} 
+            disabled={listaFiltrada.length === 0 || cargando} 
+          />
+
+          {/* Botones de Reportes (Solo Admin) */}
+          {esAdmin && (
+            <Button
+              onClick={() => setModalAbierto(true)}
+              variant="contained"
+              startIcon={<TrendingUpIcon />}
+              sx={{
+                backgroundColor: verdePapelitos,
+                color: '#fff',
+                textTransform: 'none',
+                borderRadius: '8px',
+                height: '40px',
+                px: 2,
+                fontWeight: 'bold',
+                boxShadow: '0 2px 4px rgba(30,86,49,0.2)',
+                '&:hover': { backgroundColor: '#143c22' }
+              }}
+            >
+              Ver Más Vendidos
+            </Button>
+          )}
+          {esAdmin && (
+            <Button
+              onClick={() => setModalSinMovimientoAbierto(true)}
+              variant="contained"
+              startIcon={<TrendingDownIcon />}
+              sx={{
+                backgroundColor: '#ed6c02',
+                color: '#fff',
+                textTransform: 'none',
+                borderRadius: '8px',
+                height: '40px',
+                px: 2,
+                fontWeight: 'bold',
+                boxShadow: '0 2px 4px rgba(237,108,2,0.2)',
+                '&:hover': { backgroundColor: '#e65100' }
+              }}
+            >
+              Sin Movimientos
+            </Button>
+          )}
         </Box>
 
-        {/* Lado Derecho: Filtro de Fechas profesional sin colisión de bordes */}
+        {/* Lado Derecho: Filtro de Fechas profesional (REP-05) */}
         <Paper
           elevation={0}
           sx={{
@@ -333,7 +420,7 @@ const Movimientos = () => {
             <Tooltip title="Limpiar fechas">
               <IconButton 
                 size="small" 
-                onClick={() => { setFechaDesde(''); setFechaHasta(''); }}
+                onClick={() => { setFechaDesde(''); setFechaHasta(''); setPage(0); }}
                 sx={{ color: '#d32f2f', p: 0.5, ml: 0.5 }}
               >
                 <ClearIcon sx={{ fontSize: 16 }} />
@@ -349,70 +436,112 @@ const Movimientos = () => {
         </Alert>
       )}
 
-      {/* 3. Tabla de Movimientos */}
+      {/* 3. Tabla de Movimientos con Scroll Horizontal y Paginación */}
       {cargando ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
           <CircularProgress sx={{ color: verdePapelitos }} />
         </Box>
       ) : (
-        <TableContainer component={Paper} elevation={3} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
-          <Table>
-            <TableHead sx={{ bgcolor: verdePapelitos }}>
-              <TableRow>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>Nº</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>FECHA Y HORA</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>PRODUCTO</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>TIPO</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }} align="right">CANTIDAD</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>ORIGEN</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>DESTINO</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>RESPONSABLE</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem' }}>JUSTIFICACIÓN</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {listaFiltrada.length === 0 ? (
+        <Paper
+          elevation={3}
+          sx={{
+            borderRadius: '12px',
+            width: '100%',
+            overflow: 'hidden',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+          }}
+        >
+          <TableContainer sx={{ width: '100%', overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 1050 }}>
+              <TableHead sx={{ bgcolor: verdePapelitos }}>
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4, color: '#777' }}>
-                    No se encontraron registros de movimientos con los filtros aplicados.
-                  </TableCell>
+                  <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>Nº</TableCell>
+                  <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>FECHA Y HORA</TableCell>
+                  <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>PRODUCTO</TableCell>
+                  <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>TIPO</TableCell>
+                  <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }} align="right">CANTIDAD</TableCell>
+                  <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>ORIGEN</TableCell>
+                  <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>DESTINO</TableCell>
+                  <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>RESPONSABLE</TableCell>
+                  <TableCell sx={{ color: '#ffffff', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>JUSTIFICACIÓN</TableCell>
                 </TableRow>
-              ) : (
-                listaFiltrada.map((mov, index) => (
-                  <TableRow key={mov.id || index} hover>
-                    <TableCell sx={{ color: '#555' }}>{index + 1}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap', color: '#444' }}>
-                      {new Date(mov.fecha_hora).toLocaleString('es-SV')}
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#222' }}>{mov.producto_nombre}</TableCell>
-                    <TableCell>{getTipoChip(mov.tipo, mov.tipo_display)}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', color: '#222' }}>{mov.cantidad}</TableCell>
-                    <TableCell sx={{ color: '#555' }}>{mov.origen_display || mov.origen}</TableCell>
-                    <TableCell sx={{ color: '#555' }}>{mov.destino_display || mov.destino}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={mov.responsable || 'Sin asignar'}
-                        size="small"
-                        sx={{ bgcolor: '#EAF4EC', color: verdePapelitos, fontWeight: 'bold' }}
-                      />
-                    </TableCell>
-                    <TableCell sx={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#666' }}>
-                      {mov.justificacion || '—'}
+              </TableHead>
+              <TableBody>
+                {listaFiltrada.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} align="center" sx={{ py: 4, color: '#777' }}>
+                      No se encontraron registros de movimientos con los filtros aplicados.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                ) : (
+                  movimientosPaginados.map((mov, index) => (
+                    <TableRow key={mov.id || index} hover>
+                      <TableCell sx={{ color: '#555', whiteSpace: 'nowrap' }}>{page * rowsPerPage + index + 1}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap', color: '#444' }}>
+                        {mov.fecha_hora || mov.fecha ? new Date(mov.fecha_hora || mov.fecha).toLocaleString('es-SV') : '—'}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: '#222', whiteSpace: 'nowrap' }}>
+                        {mov.producto_nombre}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {getTipoChip(mov.tipo, mov.tipo_display)}
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 'bold', color: '#222', whiteSpace: 'nowrap' }}>
+                        {mov.cantidad}
+                      </TableCell>
+                      <TableCell sx={{ color: '#555', whiteSpace: 'nowrap' }}>
+                        {mov.origen_display || mov.origen}
+                      </TableCell>
+                      <TableCell sx={{ color: '#555', whiteSpace: 'nowrap' }}>
+                        {mov.destino_display || mov.destino}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        <Chip
+                          label={mov.responsable || 'Sin asignar'}
+                          size="small"
+                          sx={{ bgcolor: '#EAF4EC', color: verdePapelitos, fontWeight: 'bold' }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 200, maxWidth: 300, color: '#666' }}>
+                        {mov.justificacion || '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {/* Paginación integrada */}
+          <TablePagination
+            rowsPerPageOptions={[10, 20, 30]}
+            component="div"
+            count={listaFiltrada.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage="Filas por página:"
+            labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `más de ${to}`}`}
+          />
+        </Paper>
       )}
 
-      {/* 4. Llamada al Modal Modularizado (Reportes/ReporteAltaRotacion.jsx) */}
-      <ReporteAltaRotacion
-        open={modalAbierto}
-        onClose={() => setModalAbierto(false)}
-        movimientos={movimientos}
-      />
+      {/* 4. Modales de Reportes */}
+      {esAdmin && (
+        <>
+          <ReporteAltaRotacion
+            open={modalAbierto}
+            onClose={() => setModalAbierto(false)}
+            movimientos={movimientos}
+          />
+
+          <ProductosSinMovimiento
+            open={modalSinMovimientoAbierto}
+            onClose={() => setModalSinMovimientoAbierto(false)}
+          />
+        </>
+      )}
     </Box>
   );
 };
