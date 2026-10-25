@@ -45,6 +45,24 @@ const Movimientos = () => {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
 
+  const manejarCambioDesde = (event) => {
+    const nuevaFechaDesde = event.target.value;
+    setFechaDesde(nuevaFechaDesde);
+
+    if (nuevaFechaDesde && fechaHasta && nuevaFechaDesde > fechaHasta) {
+      setFechaHasta(nuevaFechaDesde);
+    }
+  };
+
+  const manejarCambioHasta = (event) => {
+    const nuevaFechaHasta = event.target.value;
+    setFechaHasta(
+      fechaDesde && nuevaFechaHasta && nuevaFechaHasta < fechaDesde
+        ? fechaDesde
+        : nuevaFechaHasta
+    );
+  };
+
   // Control para abrir/cerrar el modal de alta rotación
   const [modalAbierto, setModalAbierto] = useState(false);
 
@@ -268,7 +286,7 @@ const Movimientos = () => {
               size="small"
               type="date"
               value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
+              onChange={manejarCambioDesde}
               sx={{
                 width: 125,
                 '& .MuiOutlinedInput-root': {
@@ -295,7 +313,7 @@ const Movimientos = () => {
               size="small"
               type="date"
               value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
+              onChange={manejarCambioHasta}
               sx={{
                 width: 125,
                 '& .MuiOutlinedInput-root': {
